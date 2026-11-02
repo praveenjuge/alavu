@@ -1,0 +1,58 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Run the AlavuKit unit tests on a simulator"
+  lane :test do
+    sh("cd .. && xcodegen generate")
+    run_tests(
+      project: "Alavu.xcodeproj",
+      scheme: "Alavu",
+      device: ENV.fetch("IOS_SIMULATOR", "iPhone 17 Pro"),
+      result_bundle: true
+    )
+  end
+
+  desc "Build a Release archive with cloud signing and upload it to TestFlight"
+  lane :beta do
+    key_path = File.expand_path("../AuthKey.p8", __dir__)
+    File.binwrite(key_path, Base64.decode64(ENV.fetch("ASC_PRIVATE_KEY_B64")))
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: key_path
+    )
+
+    sh("cd .. && xcodegen generate")
+    build_number = latest_testflight_build_number(api_key: api_key, initial_build_number: 0) + 1
+
+    build_app(
+      project: "Alavu.xcodeproj",
+      scheme: "Alavu",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "build",
+      xcargs: [
+        "CURRENT_PROJECT_VERSION=#{build_number}",
+        "-allowProvisioningUpdates",
+        "-authenticationKeyPath #{key_path}",
+        "-authenticationKeyID #{ENV.fetch('ASC_KEY_ID')}",
+        "-authenticationKeyIssuerID #{ENV.fetch('ASC_ISSUER_ID')}"
+      ].join(" "),
+      export_xcargs: [
+        "-allowProvisioningUpdates",
+        "-authenticationKeyPath #{key_path}",
+        "-authenticationKeyID #{ENV.fetch('ASC_KEY_ID')}",
+        "-authenticationKeyIssuerID #{ENV.fetch('ASC_ISSUER_ID')}"
+      ].join(" ")
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      distribute_external: false,
+      skip_waiting_for_build_processing: false,
+      changelog: ENV.fetch("RELEASE_NOTES", "New build of Alavu.")
+    )
+  ensure
+    File.delete(key_path) if key_path && File.exist?(key_path)
+  end
+end

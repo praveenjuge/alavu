@@ -3,4 +3,5 @@
 // TestFlight and App Store: Convex prod deployment and WorkOS production.
 CONVEX_URL = https:/$()/impartial-clownfish-311.eu-west-1.convex.cloud
 WORKOS_CLIENT_ID = client_01M6DXC6BVCRMFT3F55ZDPSP92
-POSTHOG_API_KEY =
+// Public project key for the Alavu PostHog project (safe in client apps).
+POSTHOG_API_KEY = phc_vDtrNc73qVp3dY63sidujwm9xAcxjZhZ3jJ9pCWr6HCp

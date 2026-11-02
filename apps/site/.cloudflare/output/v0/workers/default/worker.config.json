@@ -1,1 +1,6 @@
-{"name":"alavu-site","compatibilityDate":"2026-10-06","domains":["alavu.praveenjuge.com"],"observability":{"enabled":true}}
+{
+  "name": "alavu-site",
+  "compatibilityDate": "2026-10-06",
+  "domains": ["alavu.praveenjuge.com"],
+  "observability": { "enabled": true }
+}
