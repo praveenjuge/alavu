@@ -1,0 +1,13 @@
+{
+  "name": "alavu-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cf dev",
+    "deploy": "cf deploy"
+  },
+  "devDependencies": {
+    "cf": "1.0.0-beta.14",
+    "wrangler": "4.156.1"
+  }
+}
