@@ -9,7 +9,7 @@ import { nextSpaceSeq, spaceByUid } from "./lib/spaces";
 export const NEVER = "9999-12-31";
 const MAX_CATCH_UP = 60;
 
-async function ownerTimeZone(ctx: MutationCtx, spaceId: Id<"spaces">) {
+export async function ownerTimeZone(ctx: MutationCtx, spaceId: Id<"spaces">) {
   const members = await ctx.db
     .query("spaceMembers")
     .withIndex("by_space", (q) => q.eq("spaceId", spaceId))

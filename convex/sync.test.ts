@@ -100,6 +100,33 @@ describe("push and pull", () => {
     expect(record.transactions[0].deletedAt).toBeTypeOf("number");
   });
 
+  test("a removed budget can be set again, but not by an older edit", async () => {
+    const t = setup();
+    const { as, space } = await signedIn(t, "alice");
+    const id = `${space.uid}:budget:overall`;
+    const set = (editedAt: number, amountMinor: bigint) =>
+      as.mutation(api.sync.push, {
+        changes: [
+          {
+            table: "budgets",
+            uid: id,
+            editedAt,
+            deleted: false,
+            data: { spaceUid: space.uid, amountMinor },
+          },
+        ],
+      });
+    await set(1, 500n);
+    await as.mutation(api.sync.push, {
+      changes: [{ table: "budgets", uid: id, editedAt: 2, deleted: true }],
+    });
+    expect((await set(1, 700n)).applied).toBe(0);
+    expect((await set(3, 900n)).applied).toBe(1);
+
+    const setupData = await as.query(api.reads.spaceSetup, { spaceUid: space.uid });
+    expect(setupData.budgets.map((b) => b.amountMinor)).toEqual([900n]);
+  });
+
   test("pages large pulls without gaps", async () => {
     const t = setup();
     const { as, space } = await signedIn(t, "alice");

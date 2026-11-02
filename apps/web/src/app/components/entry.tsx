@@ -104,6 +104,8 @@ function EntryEditor({ entry, onClose }: { entry?: Entry; onClose: () => void })
   const toast = useToast();
   const space = entry ? (app.spaces.find((s) => s.uid === entry.spaceUid) ?? app.space) : app.space;
   const isTransferEdit = entry?.kind === "transferIn" || entry?.kind === "transferOut";
+  // An entry keeps the currency it was logged in, even if the space's currency changed since.
+  const currency = entry?.currency ?? space.currency;
   const otherSpaces = app.spaces.filter((s) => s.uid !== space.uid && s.archivedAt === undefined);
 
   const [kind, setKind] = useState<Kind>(
@@ -130,9 +132,8 @@ function EntryEditor({ entry, onClose }: { entry?: Entry; onClose: () => void })
     isTransferEdit && entry?.transferUid ? { transferUid: entry.transferUid } : "skip",
   );
   const target = app.spaces.find((s) => s.uid === targetUid);
-  const amountMinor = parseAmount(amount, space.currency);
-  const needsReceived =
-    kind === "transfer" && !entry && !!target && target.currency !== space.currency;
+  const amountMinor = parseAmount(amount, currency);
+  const needsReceived = kind === "transfer" && !entry && !!target && target.currency !== currency;
   const receivedMinor = needsReceived ? parseAmount(received, target.currency) : amountMinor;
   const categories = app.categories.filter(
     (c) =>
@@ -185,7 +186,7 @@ function EntryEditor({ entry, onClose }: { entry?: Entry; onClose: () => void })
           spaceUid: space.uid,
           kind: kind === "income" ? ("income" as const) : ("expense" as const),
           amountMinor,
-          currency: space.currency,
+          currency,
           title: resolvedTitle(),
           note: cleanNote,
           categoryUid,
@@ -270,7 +271,7 @@ function EntryEditor({ entry, onClose }: { entry?: Entry; onClose: () => void })
             />
           )}
           <label className="visually-hidden" htmlFor="amount">
-            Amount in {space.currency}
+            Amount in {currency}
           </label>
           <input
             id="amount"
@@ -283,7 +284,7 @@ function EntryEditor({ entry, onClose }: { entry?: Entry; onClose: () => void })
             onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ""))}
           />
           <span className="muted" style={{ fontSize: 13 }}>
-            {amountMinor ? formatMoney(amountMinor, space.currency) : space.currency}
+            {amountMinor ? formatMoney(amountMinor, currency) : currency}
           </span>
         </Group>
 

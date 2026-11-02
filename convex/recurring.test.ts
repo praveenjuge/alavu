@@ -129,3 +129,91 @@ describe("recurring rules", () => {
     expect(rules.find((r) => r.uid === ended)?.nextDueOn).toBe("9999-12-31");
   });
 });
+
+describe("editing rules", () => {
+  const rule = (spaceUid: string, extra: Record<string, unknown> = {}) => ({
+    spaceUid,
+    kind: "expense" as const,
+    amountMinor: 100n,
+    currency: "INR",
+    title: "Gym",
+    cadence: "monthly" as const,
+    interval: 1,
+    startOn: "2026-01-10",
+    ...extra,
+  });
+  const logged = (t: ReturnType<typeof setup>, ruleUid: string) =>
+    t.run(async (ctx) =>
+      (await ctx.db.query("transactions").collect())
+        .filter((x) => x.recurringRuleUid === ruleUid)
+        .map((x) => x.occurredOn)
+        .sort(),
+    );
+
+  test("moving an ended rule's end date later starts it again", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-15T12:00:00Z"));
+    const t = setup();
+    const { as, space } = await signedIn(t, "alice");
+    const id = uid("rule");
+    const push = (editedAt: number, endOn: string | undefined) =>
+      as.mutation(api.sync.push, {
+        changes: [
+          {
+            table: "recurringRules",
+            uid: id,
+            editedAt,
+            deleted: false,
+            data: rule(space.uid, { endOn }),
+          },
+        ],
+      });
+    await push(1, "2026-02-15");
+    expect(await logged(t, id)).toEqual(["2026-01-10", "2026-02-10"]);
+
+    await push(2, "2026-04-30");
+    expect(await logged(t, id)).toEqual(["2026-01-10", "2026-02-10", "2026-03-10", "2026-04-10"]);
+
+    await push(3, undefined);
+    expect(await logged(t, id)).toHaveLength(6);
+    const stored = await t.run((ctx) =>
+      ctx.db
+        .query("recurringRules")
+        .withIndex("by_uid", (q) => q.eq("uid", id))
+        .unique(),
+    );
+    expect(stored?.nextDueOn).toBe("2026-07-10");
+  });
+
+  test("resuming a paused rule skips what fell due while it was paused", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-15T12:00:00Z"));
+    const t = setup();
+    const { as, space } = await signedIn(t, "alice");
+    const id = uid("rule");
+    const push = (editedAt: number, pausedAt: number | undefined) =>
+      as.mutation(api.sync.push, {
+        changes: [
+          {
+            table: "recurringRules",
+            uid: id,
+            editedAt,
+            deleted: false,
+            data: rule(space.uid, { pausedAt }),
+          },
+        ],
+      });
+    await push(1, undefined);
+    await push(2, 2);
+    expect(await logged(t, id)).toEqual(["2026-01-10", "2026-02-10"]);
+
+    vi.setSystemTime(new Date("2026-06-15T12:00:00Z"));
+    await t.mutation(internal.recurring.materializeDue, {});
+    await push(3, undefined);
+    expect(await logged(t, id)).toEqual(["2026-01-10", "2026-02-10"]);
+
+    vi.setSystemTime(new Date("2026-07-10T12:00:00Z"));
+    await t.mutation(internal.recurring.materializeDue, {});
+    expect(await logged(t, id)).toEqual(["2026-01-10", "2026-02-10", "2026-07-10"]);
+  });
+});

@@ -48,6 +48,19 @@ export function occurrence(start: string, cadence: Cadence, interval: number, in
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/** First occurrence on or after `day`. */
+export function occurrenceOnOrAfter(
+  start: string,
+  cadence: Cadence,
+  interval: number,
+  day: string,
+) {
+  for (let i = 0; ; i++) {
+    const date = occurrence(start, cadence, interval, i);
+    if (date >= day) return date;
+  }
+}
+
 /** First occurrence strictly after `after`, or on/after `start` when `after` is null. */
 export function nextOccurrence(
   start: string,
