@@ -54,6 +54,8 @@ struct SignInView: View {
                 Text(title)
             }
             .frame(maxWidth: .infinity)
+            // Apple's button follows the system: black in light mode, white in dark.
+            .foregroundStyle(provider == .apple ? Color(.systemBackground) : .white)
         }
         .buttonStyle(.glassProminent)
         .controlSize(.large)
