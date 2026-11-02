@@ -772,42 +772,6 @@ textarea.input {
   font-size: 34px;
 }
 
-.provider {
-  width: 100%;
-  min-height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  border-radius: 999px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.provider.apple {
-  border: 0;
-  background: #000;
-  color: #fff;
-}
-
-.provider.google {
-  border: 1px solid #747775;
-  background: #fff;
-  color: #1f1f1f;
-}
-
-@media (prefers-color-scheme: dark) {
-  .provider.apple {
-    background: #fff;
-    color: #000;
-  }
-  .provider.google {
-    border-color: #8e918f;
-    background: #131314;
-    color: #e3e3e3;
-  }
-}
-
 .symbol-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));

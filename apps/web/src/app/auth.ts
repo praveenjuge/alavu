@@ -33,13 +33,18 @@ channel?.addEventListener("message", (event: MessageEvent) => {
   for (const listener of listeners) listener();
 });
 
-function expiry(jwt: string): number {
+/** Reads one claim from a JWT without verifying it; the server verifies tokens. */
+function claim(jwt: string, name: string): unknown {
   try {
-    const payload = JSON.parse(atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-    return typeof payload.exp === "number" ? payload.exp * 1000 : 0;
+    return JSON.parse(atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")))[name];
   } catch {
-    return 0;
+    return undefined;
   }
+}
+
+function expiry(jwt: string): number {
+  const exp = claim(jwt, "exp");
+  return typeof exp === "number" ? exp * 1000 : 0;
 }
 
 const fresh = (c: Cached | null): c is Cached => !!c && c.expiresAt - Date.now() > 60_000;
@@ -115,13 +120,22 @@ export function useWorkerAuth() {
   );
 }
 
-export function signIn(provider: "AppleOAuth" | "GoogleOAuth") {
-  location.assign(`/app/auth/start?provider=${provider}`);
+export function signIn() {
+  location.assign("/app/auth/start");
 }
 
+/** Ends both Alavu's session and the WorkOS AuthKit session, then returns to /app. */
 export async function signOut() {
+  const session = cached ?? (await refresh(false).catch(() => null));
+  const sid = session ? claim(session.token, "sid") : null;
   await post("/app/auth/signout").catch(() => undefined);
   cached = null;
   channel?.postMessage({ type: "signout" });
-  location.replace("/app/");
+  if (typeof sid !== "string") return location.replace("/app/");
+  const logout = new URL("https://api.workos.com/user_management/sessions/logout");
+  logout.search = new URLSearchParams({
+    session_id: sid,
+    return_to: `${location.origin}/app/`,
+  }).toString();
+  location.replace(logout.toString());
 }

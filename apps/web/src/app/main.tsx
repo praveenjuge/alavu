@@ -14,7 +14,7 @@ import { Overview } from "./views/Overview";
 import { Recurring } from "./views/Recurring";
 import { Categories, PaymentMethods, Settings } from "./views/Settings";
 import { Setup } from "./views/Setup";
-import { SignIn, VerifyEmail } from "./views/SignIn";
+import { SignIn } from "./views/SignIn";
 import { Spaces } from "./views/Spaces";
 import "./styles.css";
 
@@ -34,7 +34,6 @@ function SignedIn() {
 
 const router = createBrowserRouter(
   [
-    { path: "/verify-email", element: <VerifyEmail /> },
     {
       element: <SignedIn />,
       children: [

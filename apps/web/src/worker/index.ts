@@ -2,9 +2,9 @@
 // Serves /app/*: sign-in routes and the SPA fallback. Everything else on the site is
 // plain static assets and never reaches this Worker.
 //
-// Sign-in uses WorkOS as a public client with PKCE, like the iOS app. The refresh token
-// lives only in an HttpOnly cookie; the SPA asks /app/auth/token for short-lived access
-// tokens and never sees the refresh token.
+// Sign-in uses WorkOS AuthKit's hosted pages (Apple, Google, and any email check WorkOS
+// needs) with a public client and PKCE. The refresh token lives only in an HttpOnly
+// cookie; the SPA asks /app/auth/token for short-lived access tokens and never sees it.
 
 interface Env {
   ASSETS: Fetcher;
@@ -13,11 +13,9 @@ interface Env {
 const WORKOS = "https://api.workos.com/user_management";
 const CLIENT_ID = import.meta.env.VITE_WORKOS_CLIENT_ID as string;
 const CONVEX_URL = import.meta.env.VITE_CONVEX_URL as string;
-const PROVIDERS = new Set(["AppleOAuth", "GoogleOAuth"]);
 
 const SESSION = "__Host-alavu_session";
 const PENDING = "__Host-alavu_pending";
-const VERIFY = "__Host-alavu_verify";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 365;
 const SHORT_MAX_AGE = 60 * 15;
 
@@ -78,12 +76,8 @@ async function auth(request: Request, url: URL): Promise<Response> {
   switch (route) {
     case "token":
       return token(request);
-    case "pending":
-      return pending(request);
-    case "verify":
-      return verify(request);
     case "signout":
-      return json({ ok: true }, 200, [clear(SESSION), clear(VERIFY)]);
+      return json({ ok: true }, 200, [clear(SESSION)]);
     case "test-session":
       // Local development only: start a session from a test user's refresh token.
       // `import.meta.env.DEV` is false in production builds, so this route is removed.
@@ -100,8 +94,6 @@ function sameOrigin(request: Request, url: URL) {
 }
 
 async function start(url: URL) {
-  const provider = url.searchParams.get("provider") ?? "";
-  if (!PROVIDERS.has(provider)) return Response.redirect(new URL("/app/", url).toString(), 302);
   const verifier = randomToken(48);
   const state = randomToken(24);
   const authorize = new URL(`${WORKOS}/authorize`);
@@ -109,7 +101,7 @@ async function start(url: URL) {
     client_id: CLIENT_ID,
     redirect_uri: new URL("/app/auth/callback", url).toString(),
     response_type: "code",
-    provider,
+    provider: "authkit",
     state,
     code_challenge: await challenge(verifier),
     code_challenge_method: "S256",
@@ -139,20 +131,6 @@ async function callback(request: Request, url: URL) {
   const body: Record<string, unknown> = await response
     .json<Record<string, unknown>>()
     .catch(() => ({}));
-  if (
-    body.code === "email_verification_required" &&
-    typeof body.pending_authentication_token === "string"
-  ) {
-    // WorkOS wants proof of the email before linking a second provider to the account.
-    const pendingVerification = JSON.stringify({
-      token: body.pending_authentication_token,
-      email: typeof body.email === "string" ? body.email : null,
-    });
-    return redirect(new URL("/app/verify-email", url).toString(), [
-      clear(PENDING),
-      cookie(VERIFY, pendingVerification, SHORT_MAX_AGE),
-    ]);
-  }
   if (!response.ok || typeof body.refresh_token !== "string") return failed("failed");
   return redirect(new URL("/app/", url).toString(), [
     clear(PENDING),
@@ -178,43 +156,6 @@ async function token(request: Request) {
   }
   if (!response.ok) return json({ error: "Couldn't reach the sign-in service" }, 502);
   return session(await response.json());
-}
-
-async function pending(request: Request) {
-  const saved = parseJSON<{ email: string | null }>(cookies(request)[VERIFY]);
-  if (!saved) return json({ error: "Sign-in expired. Please try again." }, 410);
-  return json({ email: saved.email });
-}
-
-/** Sends the emailed code to Convex, which finishes the sign-in with the WorkOS secret. */
-async function verify(request: Request) {
-  const saved = parseJSON<{ token: string }>(cookies(request)[VERIFY]);
-  if (!saved) return json({ error: "Sign-in expired. Please try again." }, 410);
-  const { code } = await request.json<{ code?: unknown }>().catch(() => ({ code: undefined }));
-  if (typeof code !== "string")
-    return json({ error: "Enter the 6-digit code from the email." }, 400);
-
-  const response = await fetch(`${CONVEX_URL}/api/action`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      path: "signIn:verifyEmail",
-      args: { pendingAuthenticationToken: saved.token, code },
-      format: "json",
-    }),
-  });
-  const result = await response.json<{
-    status?: string;
-    value?: { refreshToken?: string };
-    errorData?: unknown;
-  }>();
-  const refreshToken = result.value?.refreshToken;
-  if (result.status !== "success" || typeof refreshToken !== "string") {
-    const message =
-      typeof result.errorData === "string" ? result.errorData : "That code didn't work.";
-    return json({ error: message }, 400);
-  }
-  return json({ ok: true }, 200, [clear(VERIFY), cookie(SESSION, refreshToken, SESSION_MAX_AGE)]);
 }
 
 async function testSession(request: Request) {
