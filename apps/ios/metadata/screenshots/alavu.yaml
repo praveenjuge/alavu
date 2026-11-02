@@ -1,0 +1,94 @@
+project:
+  name: Alavu
+  device: iPhone 17 Pro Max - Silver - Portrait
+  output_size: iPhone6_9
+  output_dir: generated
+defaults:
+  background:
+    type: solid
+    colors: ['#DDF1E7']
+screenshots:
+  01-overview:
+    content:
+    - type: text
+      content: "See where your money goes"
+      position: ['50%', '6.5%']
+      size: 76
+      weight: bold
+      color: '#0B3D2C'
+      maxWidth: 1180
+    - type: image
+      asset: raw/01-overview.png
+      frame: true
+      position: ['50%', '55.5%']
+      scale: 0.82
+  02-add-entry:
+    content:
+    - type: text
+      content: "Log an expense in seconds"
+      position: ['50%', '6.5%']
+      size: 76
+      weight: bold
+      color: '#0B3D2C'
+      maxWidth: 1180
+    - type: image
+      asset: raw/02-add-entry.png
+      frame: true
+      position: ['50%', '55.5%']
+      scale: 0.82
+  03-budgets:
+    content:
+    - type: text
+      content: "Plan around your payday"
+      position: ['50%', '6.5%']
+      size: 76
+      weight: bold
+      color: '#0B3D2C'
+      maxWidth: 1180
+    - type: image
+      asset: raw/03-budgets.png
+      frame: true
+      position: ['50%', '55.5%']
+      scale: 0.82
+  04-spaces:
+    content:
+    - type: text
+      content: "Keep work money separate"
+      position: ['50%', '6.5%']
+      size: 76
+      weight: bold
+      color: '#0B3D2C'
+      maxWidth: 1180
+    - type: image
+      asset: raw/04-spaces.png
+      frame: true
+      position: ['50%', '55.5%']
+      scale: 0.82
+  05-activity:
+    content:
+    - type: text
+      content: "Every entry, easy to find"
+      position: ['50%', '6.5%']
+      size: 76
+      weight: bold
+      color: '#0B3D2C'
+      maxWidth: 1180
+    - type: image
+      asset: raw/05-activity.png
+      frame: true
+      position: ['50%', '55.5%']
+      scale: 0.82
+  06-repeating:
+    content:
+    - type: text
+      content: "Rent and salary, on time"
+      position: ['50%', '6.5%']
+      size: 76
+      weight: bold
+      color: '#0B3D2C'
+      maxWidth: 1180
+    - type: image
+      asset: raw/06-repeating.png
+      frame: true
+      position: ['50%', '55.5%']
+      scale: 0.82
