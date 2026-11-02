@@ -37,6 +37,11 @@ struct AlavuApp: App {
 }
 
 /// App-wide services. The sync engine only exists while someone is signed in.
+nonisolated struct VerificationError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
 @MainActor
 @Observable
 final class AppModel {
@@ -72,6 +77,20 @@ final class AppModel {
         sync = engine
         engine.start()
         if let userID = auth.session?.userID { Analytics.identify(userID: userID) }
+    }
+
+    /// Sends the emailed code to the server, which finishes the paused WorkOS sign-in.
+    func verifyEmail(code: String, for check: EmailVerificationNeeded) async throws {
+        do {
+            let verified: StoredSession = try await convex.action(
+                "signIn:verifyEmail",
+                with: ["pendingAuthenticationToken": check.pendingAuthenticationToken, "code": code]
+            )
+            await auth.complete(with: verified)
+        } catch ClientError.ConvexError(let data) {
+            throw VerificationError(message: (try? JSONDecoder().decode(String.self, from: Data(data.utf8))) ?? data)
+        }
+        didSignIn()
     }
 
     func didSignIn() {

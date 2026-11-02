@@ -11,6 +11,15 @@ nonisolated struct StoredSession: Codable, Sendable {
     var name: String?
 }
 
+/// WorkOS paused sign-in until the user proves they own the email, which happens when
+/// a second provider is linked to an existing account. WorkOS has emailed them a code.
+nonisolated struct EmailVerificationNeeded: Error, Identifiable {
+    let pendingAuthenticationToken: String
+    let email: String?
+
+    var id: String { pendingAuthenticationToken }
+}
+
 nonisolated enum AuthError: LocalizedError {
     /// The refresh token was revoked or expired; the user has to sign in again.
     case sessionExpired
@@ -44,13 +53,16 @@ actor TokenStore {
     func store(_ response: AuthenticateResponse) {
         let user = response.user
         let name = [user.firstName, user.lastName].compactMap { $0 }.joined(separator: " ")
-        let session = StoredSession(
+        store(StoredSession(
             accessToken: response.accessToken,
             refreshToken: response.refreshToken,
             userID: user.id,
             email: user.email,
             name: name.isEmpty ? nil : name
-        )
+        ))
+    }
+
+    func store(_ session: StoredSession) {
         self.session = session
         Keychain.save(session)
     }

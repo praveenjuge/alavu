@@ -7,6 +7,7 @@ struct SignInView: View {
     @Environment(\.webAuthenticationSession) private var webAuth
     @State private var inProgress: AuthService.Provider?
     @State private var error: String?
+    @State private var verification: EmailVerificationNeeded?
 
     var body: some View {
         VStack(spacing: 24) {
@@ -43,6 +44,9 @@ struct SignInView: View {
         } message: {
             Text(error ?? "")
         }
+        .sheet(item: $verification) { check in
+            EmailCodeView(check: check)
+        }
     }
 
     private func button(_ provider: AuthService.Provider, title: LocalizedStringKey, @ViewBuilder logo: () -> some View) -> some View {
@@ -68,8 +72,83 @@ struct SignInView: View {
         do {
             try await auth.signIn(with: provider, using: webAuth)
             model.didSignIn()
+        } catch let check as EmailVerificationNeeded {
+            verification = check
         } catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {
             // The user closed the sheet.
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+}
+
+/// Asks for the code WorkOS emailed before it links a second sign-in method to an
+/// existing account.
+private struct EmailCodeView: View {
+    let check: EmailVerificationNeeded
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @State private var code = ""
+    @State private var verifying = false
+    @State private var error: String?
+    @FocusState private var focused: Bool
+
+    private var isComplete: Bool { code.count == 6 && code.allSatisfy(\.isNumber) }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("6-digit code", text: $code)
+                        .textContentType(.oneTimeCode)
+                        .keyboardType(.numberPad)
+                        .font(.title2.monospacedDigit())
+                        .focused($focused)
+                        .onChange(of: code) { _, new in
+                            code = String(new.filter(\.isNumber).prefix(6))
+                        }
+                        .onSubmit { Task { await verify() } }
+                } footer: {
+                    if let email = check.email {
+                        Text("You already have an account with \(email). Enter the code we just sent there to link this sign-in to it.")
+                    } else {
+                        Text("You already have an account with this email. Enter the code we just sent there to link this sign-in to it.")
+                    }
+                }
+                if let error {
+                    Section {
+                        Text(error).foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("Check Your Email")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", role: .cancel) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if verifying {
+                        ProgressView()
+                    } else {
+                        Button("Verify") { Task { await verify() } }
+                            .disabled(!isComplete)
+                    }
+                }
+            }
+            .onAppear { focused = true }
+            .interactiveDismissDisabled(verifying)
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func verify() async {
+        guard isComplete, !verifying else { return }
+        verifying = true
+        defer { verifying = false }
+        do {
+            try await model.verifyEmail(code: code, for: check)
+            dismiss()
         } catch {
             self.error = error.localizedDescription
         }

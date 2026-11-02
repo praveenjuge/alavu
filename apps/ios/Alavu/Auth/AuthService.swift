@@ -63,9 +63,25 @@ final class AuthService {
         guard let code = items.first(where: { $0.name == "code" })?.value,
               items.first(where: { $0.name == "state" })?.value == request.state
         else { throw AuthError.invalidCallback }
-        let response = try await workos.authenticateWithCode(code: code, codeVerifier: request.codeVerifier)
+        let response: AuthenticateResponse
+        do {
+            response = try await workos.authenticateWithCode(code: code, codeVerifier: request.codeVerifier)
+        } catch WorkOSError.authorization(let error) where error.code == "email_verification_required" {
+            guard case .object(let body) = error.raw, case .string(let token) = body["pending_authentication_token"] else {
+                throw WorkOSError.authorization(error)
+            }
+            var email: String?
+            if case .string(let value) = body["email"] { email = value }
+            throw EmailVerificationNeeded(pendingAuthenticationToken: token, email: email)
+        }
         await tokens.store(response)
         session = await tokens.currentSession
+    }
+
+    /// Finishes a sign-in after email verification; the server exchanges the code.
+    func complete(with verified: StoredSession) async {
+        await tokens.store(verified)
+        session = verified
     }
 
     #if DEBUG

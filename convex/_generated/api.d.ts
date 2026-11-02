@@ -16,6 +16,7 @@ import type * as lib_defaults from "../lib/defaults.js";
 import type * as lib_spaces from "../lib/spaces.js";
 import type * as receipts from "../receipts.js";
 import type * as recurring from "../recurring.js";
+import type * as signIn from "../signIn.js";
 import type * as spaces from "../spaces.js";
 import type * as sync from "../sync.js";
 import type * as users from "../users.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   "lib/spaces": typeof lib_spaces;
   receipts: typeof receipts;
   recurring: typeof recurring;
+  signIn: typeof signIn;
   spaces: typeof spaces;
   sync: typeof sync;
   users: typeof users;
