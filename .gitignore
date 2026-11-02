@@ -20,3 +20,8 @@ apps/ios/Alavu/Info.plist
 apps/ios/Alavu/Alavu.entitlements
 apps/ios/AlavuWidgets/Info.plist
 apps/ios/AlavuWidgets/AlavuWidgets.entitlements
+
+# asc CLI review artifacts and reports
+.asc/
+# Koubou render output
+apps/ios/metadata/screenshots/generated/

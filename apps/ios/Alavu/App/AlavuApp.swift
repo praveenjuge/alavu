@@ -76,7 +76,6 @@ final class AppModel {
         }
         sync = engine
         engine.start()
-        if let userID = auth.session?.userID { Analytics.identify(userID: userID) }
     }
 
     /// Sends the emailed code to the server, which finishes the paused WorkOS sign-in.

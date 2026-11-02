@@ -1,8 +1,9 @@
 import Foundation
 import PostHog
 
-/// Product analytics and crash reports through PostHog, Release builds only.
-/// Events never include amounts, titles, notes or category names.
+/// Anonymous product analytics and crash reports through PostHog, Release builds only.
+/// Events are never tied to the account and never include amounts, titles, notes or
+/// category names, matching the privacy policy and the App Store privacy labels.
 enum Analytics {
     static let optOutKey = "analyticsOptOut"
     private static var isEnabled = false
@@ -17,11 +18,6 @@ enum Analytics {
         config.optOut = UserDefaults.standard.bool(forKey: optOutKey)
         PostHogSDK.shared.setup(config)
         isEnabled = true
-    }
-
-    static func identify(userID: String) {
-        guard isEnabled else { return }
-        PostHogSDK.shared.identify(userID)
     }
 
     static func capture(_ event: String, _ properties: [String: Any] = [:]) {
