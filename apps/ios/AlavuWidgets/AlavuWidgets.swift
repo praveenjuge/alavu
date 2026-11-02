@@ -175,7 +175,7 @@ struct MonthWidgetView: View {
         VStack(alignment: .leading, spacing: 4) {
             Label(entry.spaceName, systemImage: "chart.bar.xaxis")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.tint)
+                .foregroundStyle(Color("AccentColor"))
             Text(entry.periodTitle).font(.caption2).foregroundStyle(.secondary)
             Spacer(minLength: 0)
             Text("Spent").font(.caption).foregroundStyle(.secondary)
