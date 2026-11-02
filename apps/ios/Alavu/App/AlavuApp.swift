@@ -59,6 +59,9 @@ final class AppModel {
         auth = AuthService(clientID: AppConfig.workOSClientID)
         convex = ConvexClientWithAuth(deploymentUrl: AppConfig.convexURL, authProvider: WorkOSConvexAuth(tokens: auth.tokens))
         if auth.isSignedIn { startSync() }
+        #if DEBUG
+        Task { if await auth.signInForTesting() { didSignIn() } }
+        #endif
     }
 
     func startSync() {

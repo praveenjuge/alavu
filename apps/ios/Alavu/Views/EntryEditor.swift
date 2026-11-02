@@ -33,6 +33,7 @@ struct EntryEditor: View {
     @State private var confirmingDelete = false
     @State private var error: String?
     @State private var viewingReceipt: ReceiptRef?
+    @FocusState private var amountFocused: Bool
 
     init(space: Space, entry: Entry? = nil) {
         self.space = space
@@ -82,6 +83,7 @@ struct EntryEditor: View {
                         .listRowSeparator(.hidden)
                     }
                     AmountField(title: "Amount", currency: currency, amount: $amount, large: true)
+                        .focused($amountFocused)
                 }
 
                 if kind == .transfer {
@@ -162,6 +164,13 @@ struct EntryEditor: View {
             }
             .sheet(item: $viewingReceipt) { ReceiptViewer(ref: $0) }
             .onChange(of: kind) { _, _ in categoryUid = nil }
+            .task { if isNew { amountFocused = true } }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { amountFocused = false }
+                }
+            }
         }
         .interactiveDismissDisabled(amount != nil && isNew)
     }

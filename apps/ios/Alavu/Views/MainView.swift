@@ -50,7 +50,6 @@ struct MainView: View {
                 }
             }
             .tabBarMinimizeBehavior(.onScrollDown)
-            .environment(nav)
             .sheet(isPresented: $nav.addingEntry) {
                 EntryEditor(space: space)
             }
@@ -62,6 +61,8 @@ struct MainView: View {
                 model.pendingAddEntry = false
                 nav.addingEntry = true
             }
+            // Outermost, so the sheets above can read it too.
+            .environment(nav)
         }
     }
 }
@@ -84,6 +85,8 @@ private struct SpaceSwitcher: ViewModifier {
     func body(content: Content) -> some View {
         content
             .navigationTitle(space.name)
+            // Title menus (with their chevron) only appear on inline titles.
+            .toolbarTitleDisplayMode(.inline)
             .toolbarTitleMenu {
                 ForEach(spaces) { s in
                     Button {

@@ -34,6 +34,8 @@ final class SyncEngine {
     private var running = false
     private var rerun = false
     private var started = false
+    private var retryDelay: Duration = .seconds(5)
+    private var retryTask: Task<Void, Never>?
 
     init(client: ConvexClientWithAuth<String>, tokens: TokenStore, context: ModelContext, onSessionExpired: @escaping () -> Void) {
         self.client = client
@@ -72,6 +74,7 @@ final class SyncEngine {
     }
 
     func stop() {
+        retryTask?.cancel()
         cancellables.removeAll()
         started = false
         isAuthenticated = false
@@ -95,7 +98,7 @@ final class SyncEngine {
         }
         do {
             let session = await tokens.currentSession
-            try await client.mutation("users:ensure", with: [
+            let _: Ignored = try await client.mutation("users:ensure", with: [
                 "timeZone": TimeZone.current.identifier,
                 "name": session?.name,
                 "email": session?.email,
@@ -141,12 +144,26 @@ final class SyncEngine {
                 try await pushOutbox()
                 try await pull()
                 status = isConnected ? .idle : .offline
+                retryDelay = .seconds(5)
             } catch {
                 status = isConnected ? .failed(error.localizedDescription) : .offline
+                scheduleRetry()
                 break
             }
         } while rerun
         refreshPendingCount()
+    }
+
+    /// Retries with backoff after a failed pass; reconnects and local edits also retry sooner.
+    private func scheduleRetry() {
+        retryTask?.cancel()
+        let delay = retryDelay
+        retryDelay = min(retryDelay * 2, .seconds(300))
+        retryTask = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled else { return }
+            self?.requestSync()
+        }
     }
 
     private func refreshPendingCount() {
@@ -156,7 +173,7 @@ final class SyncEngine {
     // MARK: First run
 
     func setUp(currency: String, monthStartDay: Int) async throws {
-        try await client.mutation("users:setup", with: ["currency": currency, "monthStartDay": Double(monthStartDay)])
+        let _: Ignored = try await client.mutation("users:setup", with: ["currency": currency, "monthStartDay": Double(monthStartDay)])
         await syncLoop()
     }
 
@@ -167,7 +184,7 @@ final class SyncEngine {
         for item in items {
             let changes = try item.changes()
             do {
-                try await client.mutation("sync:push", with: ["changes": changes.map { $0.convex as ConvexEncodable? }])
+                let _: Ignored = try await client.mutation("sync:push", with: ["changes": changes.map { $0.convex as ConvexEncodable? }])
                 context.delete(item)
             } catch ClientError.ConvexError(let data) {
                 // The server rejected this edit for good (it failed validation). Drop it so
@@ -418,7 +435,7 @@ final class SyncEngine {
     // MARK: Account
 
     func deleteAccount() async throws {
-        try await client.action("account:deleteAccount")
+        let _: Ignored = try await client.action("account:deleteAccount")
     }
 
     /// Wipes everything stored on this device (on sign-out or account deletion).

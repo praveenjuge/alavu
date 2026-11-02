@@ -114,6 +114,12 @@ nonisolated struct RecurringRuleDTO: Decodable {
     let deletedAt: Double?
 }
 
+/// For calls whose result we don't need. The client's no-result overloads expect a
+/// string, so they fail on any function that returns an object.
+nonisolated struct Ignored: Decodable {
+    init(from decoder: Decoder) throws {}
+}
+
 nonisolated struct UploadTarget: Decodable {
     let key: String
     let url: String

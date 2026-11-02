@@ -182,6 +182,7 @@ struct SpaceEditor: View {
     @State private var confirmingDelete = false
     @State private var error: String?
     @State private var hasEntries = false
+    @FocusState private var nameFocused: Bool
 
     init(space: Space?) {
         self.space = space
@@ -200,16 +201,19 @@ struct SpaceEditor: View {
             Form {
                 Section {
                     TextField("Name, like Office", text: $name)
+                        .focused($nameFocused)
                     NavigationLink {
                         SymbolPicker(title: "Icon", symbols: SymbolChoices.spaces, selection: $symbol)
                     } label: {
                         LabeledContent("Icon") { Image(systemName: symbol).foregroundStyle(tint.color) }
                     }
+                    // A navigation-list picker keeps each swatch's color; menus render icons in gray.
                     Picker("Color", selection: $tint) {
                         ForEach(Tint.allCases) { t in
                             Label { Text(t.name) } icon: { Image(systemName: "circle.fill").foregroundStyle(t.color) }.tag(t)
                         }
                     }
+                    .pickerStyle(.navigationLink)
                 }
                 Section {
                     CurrencyPicker(selection: $currency).disabled(hasEntries)
@@ -245,6 +249,7 @@ struct SpaceEditor: View {
                 Text("Every entry, budget, and receipt in this space will be deleted.")
             }
             .task {
+                if space == nil { nameFocused = true }
                 guard let uid = space?.uid else { return }
                 hasEntries = ((try? context.fetchCount(FetchDescriptor<Entry>(predicate: #Predicate { $0.spaceUid == uid }))) ?? 0) > 0
             }
@@ -338,11 +343,13 @@ private struct CategoryEditor: View {
     @Environment(\.modelContext) private var context
     @State private var name = ""
     @State private var symbol = "tag"
+    @FocusState private var nameFocused: Bool
 
     var body: some View {
         NavigationStack {
             Form {
                 TextField("Name", text: $name)
+                    .focused($nameFocused)
                 NavigationLink {
                     SymbolPicker(title: "Icon", symbols: SymbolChoices.categories, selection: $symbol)
                 } label: {
@@ -361,6 +368,7 @@ private struct CategoryEditor: View {
             .onAppear {
                 name = category?.name ?? ""
                 symbol = category?.symbol ?? (kind == .income ? "banknote" : "tag")
+                if category == nil { nameFocused = true }
             }
         }
         .presentationDetents([.medium])
@@ -415,11 +423,13 @@ private struct PaymentMethodEditor: View {
     @Environment(\.modelContext) private var context
     @State private var name = ""
     @State private var symbol = "creditcard"
+    @FocusState private var nameFocused: Bool
 
     var body: some View {
         NavigationStack {
             Form {
                 TextField("Name, like HDFC Card", text: $name)
+                    .focused($nameFocused)
                 Picker("Icon", selection: $symbol) {
                     ForEach(SymbolChoices.paymentMethods, id: \.self) { s in
                         Image(systemName: s).tag(s)
@@ -438,6 +448,7 @@ private struct PaymentMethodEditor: View {
             .onAppear {
                 name = method?.name ?? ""
                 symbol = method?.symbol ?? "creditcard"
+                if method == nil { nameFocused = true }
             }
         }
         .presentationDetents([.medium])
