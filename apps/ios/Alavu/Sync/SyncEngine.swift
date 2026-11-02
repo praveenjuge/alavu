@@ -85,11 +85,20 @@ final class SyncEngine {
         latestHead = nil
     }
 
+    /// Throws once `stop()` has run. A pass that was waiting on the network at sign-out
+    /// must not write into the wiped store, or it puts the old `userSeq` back and the
+    /// next sign-in never gets its spaces.
+    private func ensureRunning() throws {
+        if !started { throw CancellationError() }
+    }
+
     private func connect() async {
         guard !isConnecting, !isAuthenticated else { return }
         isConnecting = true
         defer { isConnecting = false }
-        switch await client.loginFromCache() {
+        let login = await client.loginFromCache()
+        guard started else { return }
+        switch login {
         case .success:
             isAuthenticated = true
         case .failure(let error):
@@ -112,6 +121,7 @@ final class SyncEngine {
         } catch {
             status = .failed(error.localizedDescription)
         }
+        guard started else { return }
         client.subscribe(to: "sync:head", yielding: Head.self)
             // The client re-delivers unchanged results whenever its set of queries
             // changes (each pull is one), so only react to real changes.
@@ -173,12 +183,13 @@ final class SyncEngine {
                 status = isConnected ? .idle : .offline
                 retryDelay = .seconds(5)
             } catch {
+                guard started else { break }
                 log.error("sync pass failed: \(error.localizedDescription, privacy: .public)")
                 status = isConnected ? .failed(error.localizedDescription) : .offline
                 scheduleRetry()
                 break
             }
-        } while rerun
+        } while rerun && started
         refreshPendingCount()
     }
 
@@ -213,8 +224,10 @@ final class SyncEngine {
             let changes = try item.changes()
             do {
                 let _: Ignored = try await client.mutation("sync:push", with: ["changes": changes.map { $0.convex as ConvexEncodable? }])
+                try ensureRunning()
                 context.delete(item)
             } catch ClientError.ConvexError(let data) {
+                try ensureRunning()
                 // The server rejected this edit for good (it failed validation). Drop it so
                 // it doesn't block everything queued behind it; the next pull restores
                 // the server's version of the record.
@@ -222,6 +235,7 @@ final class SyncEngine {
                 context.delete(item)
                 rerun = true
             } catch {
+                try ensureRunning()
                 item.attempts += 1
                 try? context.save()
                 throw error
@@ -238,8 +252,11 @@ final class SyncEngine {
         var rounds = 0
         while more, rounds < 50 {
             rounds += 1
-            let userSince = defaults.double(forKey: SharedKey.userSeq)
             let spaces = try context.fetch(FetchDescriptor<Space>(predicate: #Predicate { !$0.isRemoved }))
+            // With no confirmed space here, ask for the whole account. A stored counter
+            // without the spaces it covers would hide them for good (devices that hit the
+            // sign-out race recover this way).
+            let userSince = spaces.contains(where: \.isConfirmed) ? defaults.double(forKey: SharedKey.userSeq) : 0
             var cursors: [String: Double] = Dictionary(spaces.filter(\.isConfirmed).map { ($0.uid, $0.cursor) }) { a, _ in a }
             for s in latestHead?.spaces ?? [] where cursors[s.uid] == nil { cursors[s.uid] = 0 }
 
@@ -247,6 +264,7 @@ final class SyncEngine {
                 "userSince": userSince,
                 "spaces": cursors.map { ["uid": $0.key, "since": $0.value] as [String: ConvexEncodable?] as ConvexEncodable? },
             ])
+            try ensureRunning()
             try apply(response)
             defaults.set(response.userSeq, forKey: SharedKey.userSeq)
             // Keep going while a space has more pages, or the space list just told us
@@ -440,6 +458,7 @@ final class SyncEngine {
                 request.httpMethod = "PUT"
                 request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
                 let (_, response) = try await URLSession.shared.upload(for: request, from: data)
+                try ensureRunning()
                 guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
                 try? FileManager.default.moveItem(at: local, to: Store.cachedReceiptURL(forKey: target.key))
                 entry.pendingReceiptFiles.removeAll { $0 == file }

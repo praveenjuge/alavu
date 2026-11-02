@@ -98,6 +98,8 @@ final class AppModel {
     }
 
     func signOut() async {
+        // Stop syncing first, so nothing runs against the session being torn down.
+        sync?.stop()
         await convex.logout()
         try? sync?.resetLocalData()
         sync = nil
