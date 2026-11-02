@@ -3,8 +3,11 @@ import Combine
 import ConvexMobile
 import Foundation
 import Observation
+import OSLog
 import SwiftData
 import WidgetKit
+
+private let log = Logger(subsystem: "com.praveenjuge.alavu", category: "sync")
 
 /// Keeps the on-device store and Convex in step: pushes queued local edits, uploads
 /// receipt photos, and pulls what changed whenever the server's counters move.
@@ -34,6 +37,7 @@ final class SyncEngine {
     private var running = false
     private var rerun = false
     private var started = false
+    private var isConnecting = false
     private var retryDelay: Duration = .seconds(5)
     private var retryTask: Task<Void, Never>?
 
@@ -82,6 +86,9 @@ final class SyncEngine {
     }
 
     private func connect() async {
+        guard !isConnecting, !isAuthenticated else { return }
+        isConnecting = true
+        defer { isConnecting = false }
         switch await client.loginFromCache() {
         case .success:
             isAuthenticated = true
@@ -91,9 +98,8 @@ final class SyncEngine {
                 return
             }
             status = .offline
-            // Try again shortly; network may be down.
-            try? await Task.sleep(for: .seconds(10))
-            if started, !isAuthenticated { await connect() }
+            // Network may be down; reconnecting also happens when the socket comes back.
+            scheduleRetry()
             return
         }
         do {
@@ -107,6 +113,9 @@ final class SyncEngine {
             status = .failed(error.localizedDescription)
         }
         client.subscribe(to: "sync:head", yielding: Head.self)
+            // The client re-delivers unchanged results whenever its set of queries
+            // changes (each pull is one), so only react to real changes.
+            .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { _ in },
@@ -121,7 +130,11 @@ final class SyncEngine {
 
     /// Runs a sync pass now, or right after the current one finishes.
     func requestSync() {
-        guard isAuthenticated else { return }
+        guard started else { return }
+        guard isAuthenticated else {
+            Task { await connect() }
+            return
+        }
         if running { rerun = true; return }
         Task { await syncLoop() }
     }
@@ -132,6 +145,16 @@ final class SyncEngine {
         await syncLoop()
     }
 
+    /// Syncs, but gives up waiting after `timeout`. For App Intents, which have little time.
+    func syncBriefly(timeout: Duration) async {
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.syncNow() }
+            group.addTask { try? await Task.sleep(for: timeout) }
+            await group.next()
+            group.cancelAll()
+        }
+    }
+
     private func syncLoop() async {
         guard !running else { rerun = true; return }
         running = true
@@ -140,12 +163,17 @@ final class SyncEngine {
             rerun = false
             status = .syncing
             do {
+                log.debug("sync pass: uploading receipts")
                 try await uploadReceipts()
+                log.debug("sync pass: pushing outbox")
                 try await pushOutbox()
+                log.debug("sync pass: pulling")
                 try await pull()
+                log.debug("sync pass: done")
                 status = isConnected ? .idle : .offline
                 retryDelay = .seconds(5)
             } catch {
+                log.error("sync pass failed: \(error.localizedDescription, privacy: .public)")
                 status = isConnected ? .failed(error.localizedDescription) : .offline
                 scheduleRetry()
                 break

@@ -100,7 +100,7 @@ struct EntryEditor: View {
                             }
                         }
                         .pickerStyle(.navigationLink)
-                        Picker("Paid With", selection: $paymentMethodUid) {
+                        Picker(kind == .income ? "Received Via" : "Paid With", selection: $paymentMethodUid) {
                             Text("None").tag(String?.none)
                             ForEach(paymentMethods) { method in
                                 Label(method.name, systemImage: method.symbol).tag(Optional(method.uid))

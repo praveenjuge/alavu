@@ -91,7 +91,8 @@ struct LogEntryIntent: AppIntent {
             currency: target.currency, title: (name?.isEmpty ?? true) ? fallback : name!, occurredOn: CalendarDay.today
         )
         try Writer(context).save(entry)
-        model.sync?.requestSync()
+        // The entry is safe on the device already; try briefly to send it now too.
+        await model.sync?.syncBriefly(timeout: .seconds(5))
         Analytics.capture("entry_added", ["kind": entry.kind.rawValue, "via": "intent"])
         let formatted = Money.format(minor: minor, currency: target.currency)
         return .result(dialog: "Logged \(formatted) in \(target.name).")

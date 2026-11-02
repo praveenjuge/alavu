@@ -15,7 +15,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Spaces") {
+                Section {
                     NavigationLink {
                         SpacesList()
                     } label: {
