@@ -1,0 +1,6 @@
+#include "Shared.xcconfig"
+
+// TestFlight and App Store: Convex prod deployment and WorkOS production.
+CONVEX_URL = https:/$()/impartial-clownfish-311.eu-west-1.convex.cloud
+WORKOS_CLIENT_ID = client_01M6DXC6BVCRMFT3F55ZDPSP92
+POSTHOG_API_KEY =

@@ -1,0 +1,7 @@
+#include "Shared.xcconfig"
+
+// Local development: Convex dev deployment and WorkOS staging.
+CONVEX_URL = https:/$()/resolute-gnu-499.eu-west-1.convex.cloud
+WORKOS_CLIENT_ID = client_01M6DXC6397GAZ507HQ6CDZCZW
+// Debug builds never send analytics.
+POSTHOG_API_KEY =

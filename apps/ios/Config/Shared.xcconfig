@@ -1,0 +1,2 @@
+// Public configuration only. Secrets never go in this repo.
+POSTHOG_HOST = https:/$()/us.i.posthog.com
