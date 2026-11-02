@@ -3,17 +3,18 @@ import { internal } from "./_generated/api";
 import type { Doc, Id, TableNames } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { authedMutation, authedQuery } from "./lib/auth";
-import { isCalendarDate } from "./lib/dates";
+import { isCalendarDate, nextOccurrence, occurrenceOnOrAfter, todayIn } from "./lib/dates";
 import { seedCategories } from "./lib/defaults";
 import { bumpMembers, memberSpaces, nextSpaceSeq, requireSpace, spaceByUid } from "./lib/spaces";
-import { materializeRule, NEVER } from "./recurring";
+import { materializeRule, NEVER, ownerTimeZone } from "./recurring";
 import { cadence, categoryKind, transactionKind } from "./schema";
 
 // Offline-first sync protocol shared by every client.
 //
 // Push: clients queue local edits and send them as `changes`. Each change carries the
 // record's `uid`, the client clock `editedAt` (last write wins) and either `data` or
-// `deleted: true`. Tombstones are final. All changes in one push apply atomically,
+// `deleted: true`. Tombstones are final, except for budgets, whose uid is fixed per
+// space and category. All changes in one push apply atomically,
 // so an edit that touches several records (like a transfer's two legs) lands together.
 //
 // Pull: clients subscribe to `head` and, when a counter moves past their cursor, call
@@ -220,7 +221,13 @@ async function applySpaceRecord(ctx: MutationCtx, user: Doc<"users">, c: SpaceRe
   const spaceUid = existing?.spaceUid ?? c.data?.spaceUid;
   if (!spaceUid) return false;
   const space = await requireSpace(ctx, user, spaceUid, "editor");
-  if (existing && (existing.deletedAt !== undefined || existing.editedAt > c.editedAt))
+  // Tombstones are final, except for budgets: each space and category has one fixed
+  // budget uid, so setting a budget again after removing it has to bring it back.
+  const revives = c.table === "budgets" && !c.deleted;
+  if (
+    existing &&
+    ((existing.deletedAt !== undefined && !revives) || existing.editedAt > c.editedAt)
+  )
     return false;
 
   if (c.deleted) {
@@ -298,12 +305,28 @@ async function applySpaceRecord(ctx: MutationCtx, user: Doc<"users">, c: SpaceRe
         prior.startOn === d.startOn &&
         prior.cadence === d.cadence &&
         prior.interval === d.interval;
-      const nextDueOn = sameSchedule ? prior.nextDueOn : d.startOn;
+      let nextDueOn = sameSchedule ? prior.nextDueOn : d.startOn;
+      let resumeOn = sameSchedule ? prior.resumeOn : undefined;
+      // A rule that ended picks up after its old end date, so moving the end date later
+      // (or removing it) starts it again. It never goes back before its last resume.
+      if (sameSchedule && nextDueOn === NEVER && prior.endOn !== undefined) {
+        nextDueOn = nextOccurrence(d.startOn, d.cadence, d.interval, prior.endOn);
+        if (resumeOn !== undefined && resumeOn > nextDueOn) nextDueOn = resumeOn;
+      }
+      // Resuming skips what fell due while paused instead of logging it all at once. The
+      // pause ended when the edit was made, which for an offline device can be well before
+      // it syncs, so the edit's own time decides (capped at now, for clocks set ahead).
+      if (prior?.pausedAt !== undefined && d.pausedAt === undefined) {
+        const resumedAt = Math.min(c.editedAt, Date.now());
+        const today = todayIn(await ownerTimeZone(ctx, space._id), resumedAt);
+        resumeOn = occurrenceOnOrAfter(d.startOn, d.cadence, d.interval, today);
+        if (resumeOn > nextDueOn) nextDueOn = resumeOn;
+      }
       const id = await upsert(
         ctx,
         "recurringRules",
         existing?._id,
-        { uid: c.uid, ...d, nextDueOn },
+        { uid: c.uid, ...d, nextDueOn, resumeOn },
         c.editedAt,
         space,
       );

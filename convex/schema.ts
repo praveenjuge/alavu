@@ -129,6 +129,9 @@ export default defineSchema({
     startOn: v.string(),
     endOn: v.optional(v.string()),
     nextDueOn: v.string(),
+    // Set by the server when a paused rule resumes: the first date it may log again.
+    // Kept so an ended rule that restarts never logs what fell due while it was paused.
+    resumeOn: v.optional(v.string()),
     pausedAt: v.optional(v.number()),
     editedAt: v.number(),
     deletedAt: v.optional(v.number()),
