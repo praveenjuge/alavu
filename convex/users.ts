@@ -4,11 +4,15 @@ import { authedMutation, getUser } from "./lib/auth";
 import { seedCategories, seedPaymentMethods } from "./lib/defaults";
 import { memberSpaces } from "./lib/spaces";
 
-/** Creates or refreshes the signed-in user's record. Safe to call on every launch. */
+/**
+ * Creates or refreshes the signed-in user's record. Safe to call on every launch.
+ * The iOS app sends `null` for a name or email the account doesn't have (Apple can
+ * hide the name), so `null` means the same as leaving it out.
+ */
 export const ensure = mutation({
   args: {
-    name: v.optional(v.string()),
-    email: v.optional(v.string()),
+    name: v.optional(v.union(v.string(), v.null())),
+    email: v.optional(v.union(v.string(), v.null())),
     timeZone: v.string(),
   },
   handler: async (ctx, args) => {
@@ -26,8 +30,8 @@ export const ensure = mutation({
     await ctx.db.insert("users", {
       tokenIdentifier: identity.tokenIdentifier,
       workosUserId: identity.subject,
-      name: args.name,
-      email: args.email,
+      name: args.name ?? undefined,
+      email: args.email ?? undefined,
       timeZone: args.timeZone,
       seq: 1,
     });

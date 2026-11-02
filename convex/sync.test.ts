@@ -19,6 +19,16 @@ describe("setup", () => {
     expect(pulled.records[0].categories.length).toBeGreaterThan(10);
   });
 
+  test("signs in an account with no name or email", async () => {
+    const t = setup();
+    // The iOS app sends null for fields the account doesn't have.
+    const as = t.withIdentity({ subject: "nameless", tokenIdentifier: "test|nameless" });
+    await as.mutation(api.users.ensure, { timeZone: "Asia/Kolkata", name: null, email: null });
+    await as.mutation(api.users.setup, { currency: "INR", monthStartDay: 1 });
+    const pulled = await as.query(api.sync.pull, { userSince: 0, spaces: [] });
+    expect(pulled.spaces).toHaveLength(1);
+  });
+
   test("rejects unauthenticated calls", async () => {
     const t = setup();
     await expect(t.query(api.sync.head, {})).rejects.toThrow(/Not signed in/);
