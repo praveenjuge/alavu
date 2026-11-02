@@ -33,7 +33,11 @@ export const verifyEmail = action({
         pending_authentication_token: pendingAuthenticationToken,
       }),
     });
-    const body = await response.json().catch(() => null);
+    const body = (await response.json().catch(() => null)) as {
+      access_token?: string;
+      refresh_token?: string;
+      user?: { id: string; email?: string; first_name?: string | null; last_name?: string | null };
+    } | null;
     if (!response.ok || !body?.access_token || !body?.refresh_token || !body?.user?.id) {
       if (response.status >= 500)
         throw new ConvexError("Couldn't reach the sign-in service. Please try again.");
@@ -41,6 +45,7 @@ export const verifyEmail = action({
     }
 
     const user = body.user;
+    if (!user) throw new ConvexError("Sign-in expired. Please try again.");
     const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
     return {
       accessToken: body.access_token as string,

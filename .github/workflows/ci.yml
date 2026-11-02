@@ -27,6 +27,26 @@ jobs:
       - run: bun run typecheck
       - run: bun run test
 
+  web:
+    name: Web typecheck, tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      # The web app type-checks against the Convex functions at the repository root.
+      - run: bun install --frozen-lockfile
+      - working-directory: apps/web
+        run: bun install --frozen-lockfile
+      - working-directory: apps/web
+        run: bun run typecheck
+      - working-directory: apps/web
+        run: bun run test
+      - working-directory: apps/web
+        run: bun run build
+
   ios:
     name: iOS build and tests
     runs-on: macos-26

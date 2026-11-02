@@ -161,7 +161,8 @@ async function applySpace(
   } else if (c.data) {
     validateSpace(c.data);
     // Each record stores its own currency, so changing it only affects new entries.
-    await ctx.db.patch(existing._id, { ...c.data, editedAt: c.editedAt });
+    // `archivedAt` is reset first so that leaving it out un-archives the space.
+    await ctx.db.patch(existing._id, { archivedAt: undefined, ...c.data, editedAt: c.editedAt });
   }
   await bumpMembers(ctx, existing._id);
   return true;

@@ -98,7 +98,9 @@ export default defineSchema({
     seq: v.number(),
   })
     .index("by_uid", ["uid"])
-    .index("by_space_seq", ["spaceUid", "seq"]),
+    .index("by_space_seq", ["spaceUid", "seq"])
+    .index("by_space_occurredOn", ["spaceUid", "occurredOn"])
+    .index("by_transferUid", ["transferUid"]),
 
   budgets: defineTable({
     spaceUid: v.string(),

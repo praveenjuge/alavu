@@ -3,10 +3,11 @@
   "files": {
     "includes": [
       "convex/**",
-      "apps/site/**",
+      "apps/web/**",
       "*.json",
       "!convex/_generated",
-      "!apps/site/public/**"
+      "!apps/web/public/**",
+      "!apps/web/.cloudflare"
     ]
   },
   "formatter": {

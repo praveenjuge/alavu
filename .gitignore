@@ -25,3 +25,5 @@ apps/ios/AlavuWidgets/AlavuWidgets.entitlements
 .asc/
 # Koubou render output
 apps/ios/metadata/screenshots/generated/
+.cloudflare/
+.claude/settings.local.json

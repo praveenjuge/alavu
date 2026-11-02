@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Deploy backend and site
+    name: Deploy backend, site and web app
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 15
@@ -29,13 +29,14 @@ jobs:
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
         run: bunx convex deploy
-      - name: Deploy site
-        working-directory: apps/site
+      - name: Deploy site and web app
+        working-directory: apps/web
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           bun install --frozen-lockfile
+          bun run test
           bunx cf deploy
 
   testflight:
