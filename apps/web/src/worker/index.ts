@@ -60,6 +60,8 @@ async function spa(request: Request, url: URL, env: Env) {
     ].join("; "),
   );
   headers.set("Referrer-Policy", "no-referrer");
+  // The app is behind sign-in; only the marketing pages belong in search results.
+  headers.set("X-Robots-Tag", "noindex");
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("Cache-Control", "no-cache");
   return new Response(response.body, { status: response.status, headers });

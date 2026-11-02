@@ -2,28 +2,101 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Alavu</title>
-<meta name="description" content="A simple, private expense tracker for iPhone and the web.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alavu: Expense Tracker and Budgets for iPhone and the Web</title>
+<meta name="description" content="Alavu is a calm, simple expense tracker. Keep personal, work and family money in separate spaces, set budgets that follow your payday, and log an expense in seconds.">
+<link rel="canonical" href="https://alavu.praveenjuge.com/">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1412" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Alavu">
+<meta property="og:title" content="Alavu: Expense Tracker and Budgets">
+<meta property="og:description" content="Alavu is a calm, simple expense tracker. Keep personal, work and family money in separate spaces, set budgets that follow your payday, and log an expense in seconds.">
+<meta property="og:url" content="https://alavu.praveenjuge.com/">
+<meta property="og:image" content="https://alavu.praveenjuge.com/images/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Alavu app icon beside the Overview screen showing spending against a monthly budget">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Alavu: Expense Tracker and Budgets">
+<meta name="twitter:description" content="Alavu is a calm, simple expense tracker. Keep personal, work and family money in separate spaces, set budgets that follow your payday, and log an expense in seconds.">
+<meta name="twitter:image" content="https://alavu.praveenjuge.com/images/og.png">
 <link rel="stylesheet" href="/style.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Alavu", "alternateName": "Alavu: Expense Tracker", "description": "A calm, simple expense tracker with spaces for personal, work and family money, budgets that follow your payday, repeating entries and receipts.", "applicationCategory": "FinanceApplication", "operatingSystem": "iOS, Web", "url": "https://alavu.praveenjuge.com/", "image": "https://alavu.praveenjuge.com/images/og.png", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "author": {"@type": "Person", "name": "Praveen Juge", "url": "https://praveenjuge.com"}}</script>
 </head>
-<body>
+<body class="landing">
+<header class="bar">
+  <a class="brand" href="/"><img src="/icon.svg" alt="" width="32" height="32">Alavu</a>
+  <a class="bar-link" href="/app/">Open web app</a>
+</header>
 <main>
-<header><img src="/icon.svg" alt=""><a href="/">Alavu</a></header>
-<h1>Know where your money goes.</h1>
-<p class="muted">Alavu is a simple expense and income tracker for iPhone and the web. Keep separate spaces for personal money, work, or a group fund, set monthly budgets, and log entries in seconds, even offline.</p>
-<h2>What you can do</h2>
-<ul>
-<li>Track expenses, income, and transfers between spaces.</li>
-<li>Set monthly budgets that can follow your payday.</li>
-<li>Add repeating entries like rent or salary once.</li>
-<li>Attach receipt photos.</li>
-<li>Log an expense from Siri, Shortcuts, widgets, or Control Center.</li>
-</ul>
-<p class="muted">Alavu doesn't connect to your bank. You decide what to record.</p>
-<p><a href="/app/">Open Alavu on the web</a></p>
-<nav><a href="/">Home</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="/support/">Support</a></nav>
+  <section class="hero">
+    <div class="hero-text">
+      <p class="eyebrow">For iPhone and the web</p>
+      <h1>Know where your money goes.</h1>
+      <p class="lead">Alavu is a calm, simple expense tracker. Keep personal, work and family money in separate spaces, set budgets that follow your payday, and log an expense in seconds.</p>
+      <div class="actions">
+        <a class="button" href="/app/">Open Alavu on the web <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h16m-6.562-7a13.53 13.53 0 0 0 4.667 5.681L19 12l-1.895 1.319A13.53 13.53 0 0 0 12.438 19"/></svg></a>
+        <span class="note">iPhone app coming soon to the App Store</span>
+      </div>
+    </div>
+    <figure class="hero-shot">
+      <picture>
+        <source srcset="/images/overview.webp" type="image/webp">
+        <img src="/images/overview.png" width="640" height="1391" alt="The Overview screen: ₹46,901 spent with ₹13,099 left of a ₹60,000 monthly budget, income, transfers and net for the month" fetchpriority="high">
+      </picture>
+    </figure>
+  </section>
+
+  <section class="features" aria-labelledby="features-title">
+    <h2 id="features-title">Everything you need, nothing you don’t.</h2>
+    <ul>
+        <li>
+          <span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 11v1c3.601.9 6.9 2.485 10 4.5 3.1-2.015 6.399-3.6 10-4.5v-1M2 15.5v1c3.601.9 6.9 2.485 10 4.5 3.1-2.015 6.399-3.6 10-4.5v-1M12 12C8.9 9.985 5.601 8.4 2 7.5 5.1 5.485 8.399 3.9 12 3c3.601.9 6.9 2.485 10 4.5-3.601.9-6.9 2.485-10 4.5"/></svg></span>
+          <h3>Spaces for every part of life</h3>
+          <p>Keep personal money, work and a family fund apart, each with its own currency, categories and budgets.</p>
+        </li>
+        <li>
+          <span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.997 20.5a10.1 10.1 0 0 0 2.003-6 10 10 0 0 0-20 0c0 2.153.72 4.28 2.003 6M16 10.5l-4 4"/></svg></span>
+          <h3>Budgets that follow payday</h3>
+          <p>Start your month on the day you get paid and see what’s left at a glance, overall or by category.</p>
+        </li>
+        <li>
+          <span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.842 3.382c.066-.56-.599-.864-.94-.431l-.157.304a35.3 35.3 0 0 1-8.62 10.821c-.29.367-.043.924.41.924h7.86c.322 0 .57.297.53.634l-.765 4.985c-.068.558.596.863.938.43l.157-.304a35.3 35.3 0 0 1 8.62-10.821c.29-.367.043-.924-.41-.924h-7.86c-.322 0-.57-.297-.53-.634Z"/></svg></span>
+          <h3>Quick to add</h3>
+          <p>Log an entry in a few taps, or without opening the app: ask Siri, tap a widget, or use Control Center.</p>
+        </li>
+        <li>
+          <span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15c-.76 1.937-2.256 3.08-4 3.5 1.744.42 3.24 1.563 4 3.5m-4-3.5h15.556c3.915 0 4.444-3.944 4.444-7M18 9c.76-1.937 2.256-3.08 4-3.5-1.744-.42-3.24-1.563-4-3.5m4 3.5H6.444C2.53 5.5 2 9.444 2 12.5"/></svg></span>
+          <h3>Repeating entries</h3>
+          <p>Add rent, salary and subscriptions once. Alavu records them on schedule, even when the app is closed.</p>
+        </li>
+        <li>
+          <span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2.5v19l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1v-19l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M15 8h-4a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4H9m3 2V6"/></svg></span>
+          <h3>Receipts kept with entries</h3>
+          <p>Attach a photo of the bill to the entry it belongs to, so it’s there when you need it.</p>
+        </li>
+        <li>
+          <span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.855 5.5A3.5 3.5 0 0 0 15.5 3H7.6c-1.96 0-2.94 0-3.689.381a3.5 3.5 0 0 0-1.53 1.53C2 5.66 2 6.64 2 8.6v.8c0 1.96 0 2.94.381 3.689a3.5 3.5 0 0 0 1.53 1.53C4.66 15 5.64 15 7.6 15h3.9M9 15v4m-3 0h5m7.5-10c.93 0 1.396 0 1.773.122a2.5 2.5 0 0 1 1.605 1.605c.122.377.122.842.122 1.773v6c0 .93 0 1.396-.122 1.773a2.5 2.5 0 0 1-1.605 1.605C19.896 22 19.43 22 18.5 22s-1.396 0-1.773-.122a2.5 2.5 0 0 1-1.605-1.605C15 19.896 15 19.43 15 18.5v-6c0-.93 0-1.396.122-1.773a2.5 2.5 0 0 1 1.605-1.605C17.104 9 17.57 9 18.5 9"/></svg></span>
+          <h3>iPhone and web, in sync</h3>
+          <p>Works offline on iPhone and stays in step with the web app the moment you’re back online.</p>
+        </li>
+    </ul>
+  </section>
+
+  <section class="privacy">
+    <span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7.351v-1.88a.57.57 0 0 0-.148-.388.6.6 0 0 0-.374-.19 13.9 13.9 0 0 1-6.38-2.302l-.455-.306c-.232-.156-.348-.235-.474-.265a.7.7 0 0 0-.338 0c-.126.03-.242.109-.475.266l-.454.306a13.9 13.9 0 0 1-6.38 2.3.6.6 0 0 0-.374.191.57.57 0 0 0-.148.389v1.88c0 6.013 3.213 10.511 7.538 14.47.26.238.664.238.924 0C16.752 17.894 20 13.408 20 7.351"/><path d="m9 11.786 1.875 1.714s2.289-3.2 4.125-4"/></svg></span>
+    <div>
+      <h2>Private by design.</h2>
+      <p>Alavu never connects to your bank, shows no ads and never sells your data. You decide what to record, and you can delete your account and everything in it whenever you like. <a href="/privacy/">Read the privacy policy</a>.</p>
+    </div>
+  </section>
 </main>
+<footer class="foot">
+  <span>© 2026 Praveen Juge</span>
+  <nav><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="/support/">Support</a></nav>
+</footer>
 </body>
 </html>

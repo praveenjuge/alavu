@@ -2,9 +2,10 @@ import { api } from "@convex/_generated/api";
 import { useAction } from "convex/react";
 import { useState } from "react";
 import { Button } from "react-aria-components";
-import { CreditCard, Layers, LogOut, Plus, Repeat, Tag, Trash } from "vadivam-react";
+import { CreditCard, Keyboard, Layers, LogOut, Plus, Repeat, Tag, Trash } from "vadivam-react";
 import { signOut } from "../auth";
 import { categorySymbols, SymbolIcon } from "../components/icons";
+import { ShortcutHelp } from "../components/Shell";
 import {
   Badge,
   errorMessage,
@@ -31,6 +32,7 @@ export function Settings() {
   const { space, user } = useApp();
   const [optedOut, setOptedOut] = useState(analyticsOptedOut);
   const [confirm, setConfirm] = useState<"signout" | "delete" | null>(null);
+  const [shortcuts, setShortcuts] = useState(false);
   return (
     <>
       <PageHeader title="Settings" />
@@ -44,6 +46,16 @@ export function Settings() {
       <Group>
         <Row to="/settings/payment-methods" icon={linkIcon(CreditCard)} title="Payment Methods" />
       </Group>
+      <div className="desktop-only">
+        <Group>
+          <Row
+            onPress={() => setShortcuts(true)}
+            icon={linkIcon(Keyboard)}
+            title="Keyboard Shortcuts"
+            trailing={<kbd className="key">?</kbd>}
+          />
+        </Group>
+      </div>
       <Group
         header="Data"
         footer="Usage data and crash reports help fix problems. They never include amounts, names, or notes."
@@ -73,6 +85,7 @@ export function Settings() {
         <Row title="Terms" href="/terms/" />
         <Row title="Support" href="/support/" />
       </Group>
+      <ShortcutHelp isOpen={shortcuts} onClose={() => setShortcuts(false)} />
       {confirm === "signout" && <SignOutSheet onClose={() => setConfirm(null)} />}
       {confirm === "delete" && <DeleteAccountSheet onClose={() => setConfirm(null)} />}
     </>

@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { NavLink, Outlet, useNavigate } from "react-router";
-import { ChartColumn, ChevronDown, Gauge, Keyboard, List, Plus, Settings } from "vadivam-react";
+import { ChartColumn, ChevronDown, Gauge, List, Plus, Settings } from "vadivam-react";
 import { useApp } from "../data";
 import { SpaceEditor } from "../views/Spaces";
 import { EntryEditorProvider, useEntryEditor } from "./entry";
@@ -139,20 +139,11 @@ function SpaceMenu() {
 
 function SidebarFooter() {
   const { user } = useApp();
-  const [help, setHelp] = useState(false);
   return (
     <div className="sidebar-footer">
       <span className="muted" style={{ padding: "0 10px" }}>
         {user.email}
       </span>
-      <Button
-        className="button plain"
-        onPress={() => setHelp(true)}
-        style={{ justifyContent: "flex-start" }}
-      >
-        <Keyboard size={16} aria-hidden /> Keyboard Shortcuts
-      </Button>
-      <ShortcutHelp isOpen={help} onClose={() => setHelp(false)} />
     </div>
   );
 }
@@ -166,7 +157,7 @@ const shortcutList: [string, string][] = [
   ["Esc", "Close"],
 ];
 
-function ShortcutHelp({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export function ShortcutHelp({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   return (
     <ModalOverlay
       className="overlay"
