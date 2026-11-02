@@ -30,6 +30,7 @@ struct EntryEditor: View {
     @State private var removedReceipts: Set<String> = []
     @State private var photoItem: PhotosPickerItem?
     @State private var showingCamera = false
+    @State private var showingPhotos = false
     @State private var confirmingDelete = false
     @State private var error: String?
     @State private var viewingReceipt: ReceiptRef?
@@ -159,18 +160,14 @@ struct EntryEditor: View {
                     photoItem = nil
                 }
             }
+            .photosPicker(isPresented: $showingPhotos, selection: $photoItem, matching: .images)
             .fullScreenCover(isPresented: $showingCamera) {
                 CameraPicker { data in addReceipt(data) }.ignoresSafeArea()
             }
             .sheet(item: $viewingReceipt) { ReceiptViewer(ref: $0) }
             .onChange(of: kind) { _, _ in categoryUid = nil }
             .task { if isNew { amountFocused = true } }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") { amountFocused = false }
-                }
-            }
+            .scrollDismissesKeyboard(.interactively)
         }
         .interactiveDismissDisabled(amount != nil && isNew)
     }
@@ -211,9 +208,9 @@ struct EntryEditor: View {
             }
             if existing.count + pending.count < 10 {
                 Menu {
-                    PhotosPicker(selection: $photoItem, matching: .images) {
-                        Label("Choose Photo", systemImage: "photo.on.rectangle")
-                    }
+                    // A PhotosPicker can't present from inside a Menu, so the menu
+                    // button opens it through the modifier below.
+                    Button("Choose Photo", systemImage: "photo.on.rectangle") { showingPhotos = true }
                     if UIImagePickerController.isSourceTypeAvailable(.camera) {
                         Button("Take Photo", systemImage: "camera") { showingCamera = true }
                     }

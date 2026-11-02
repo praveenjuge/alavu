@@ -55,6 +55,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.praveenjuge.alavu
         PRODUCT_NAME: Alavu
+        # iPhone only; XcodeGen otherwise defaults targets to iPhone and iPad.
+        TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_ENTITLEMENTS: Alavu/Alavu.entitlements
@@ -100,6 +102,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.praveenjuge.alavu.widgets
         PRODUCT_NAME: AlavuWidgets
+        TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_ENTITLEMENTS: AlavuWidgets/AlavuWidgets.entitlements
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME: WidgetBackground

@@ -99,10 +99,18 @@ private struct StatusLabel: View {
 
     var body: some View {
         switch level {
-        case .within: Label("On Track", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-        case .approaching: Label("Close to Limit", systemImage: "exclamationmark.circle.fill").foregroundStyle(.orange)
-        case .over: Label("Over Budget", systemImage: "xmark.circle.fill").foregroundStyle(.red)
+        case .within: label("On track", "checkmark.circle.fill", .green)
+        case .approaching: label("Near limit", "exclamationmark.circle.fill", .orange)
+        case .over: label("Over", "xmark.circle.fill", .red)
         }
+    }
+
+    private func label(_ text: LocalizedStringKey, _ symbol: String, _ color: Color) -> some View {
+        Label(text, systemImage: symbol)
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(color)
+            .labelStyle(.titleAndIcon)
+            .fixedSize()
     }
 }
 
@@ -129,6 +137,7 @@ struct BudgetEditor: View {
     @State private var categoryUid: String?
     @State private var amount: Decimal?
     @State private var error: String?
+    @FocusState private var amountFocused: Bool
 
     init(space: Space, target: Target) {
         self.space = space
@@ -162,8 +171,9 @@ struct BudgetEditor: View {
                 }
                 Section {
                     AmountField(title: "Monthly limit", currency: space.currency, amount: $amount, large: true)
+                        .focused($amountFocused)
                 } footer: {
-                    Text("Resets every budget month, starting on day \(space.monthStartDay).")
+                    Text("Resets on the \(MonthStartPicker.ordinal(space.monthStartDay)) of each month.")
                 }
                 if !isNew {
                     Section {
@@ -172,6 +182,7 @@ struct BudgetEditor: View {
                 }
                 if let error { Text(error).foregroundStyle(.red) }
             }
+            .task { if isNew && !picksCategory { amountFocused = true } }
             .navigationTitle(isNew ? "New Budget" : "Edit Budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -41,6 +41,15 @@ struct EntryRow: View {
         }
     }
 
+    /// Transfers store the other space's name; show which way the money moved.
+    private var title: String {
+        switch entry.kind {
+        case .transferOut: String(localized: "To \(entry.title)")
+        case .transferIn: String(localized: "From \(entry.title)")
+        default: entry.title
+        }
+    }
+
     private var subtitle: String {
         var parts: [String] = []
         if entry.kind.isTransfer {
@@ -57,7 +66,7 @@ struct EntryRow: View {
             SymbolBadge(symbol: symbol, tint: entry.kind.sign > 0 ? .green : .accentColor)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
-                    Text(entry.title).lineLimit(1)
+                    Text(title).lineLimit(1)
                     if entry.recurringRuleUid != nil {
                         Image(systemName: "repeat").font(.caption).foregroundStyle(.secondary)
                             .accessibilityLabel("Repeats")
