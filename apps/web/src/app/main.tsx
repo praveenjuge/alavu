@@ -24,9 +24,9 @@ startAnalytics();
 function SignedIn() {
   const auth = useWorkerAuth();
   if (auth.isLoading) return <Loading />;
-  if (!auth.isAuthenticated) return <SignIn />;
+  if (!auth.user) return <SignIn />;
   return (
-    <AppDataProvider loading={<Loading />} setup={<Setup />}>
+    <AppDataProvider user={auth.user} loading={<Loading />} setup={<Setup />}>
       <Shell />
     </AppDataProvider>
   );

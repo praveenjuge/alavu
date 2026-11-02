@@ -1,6 +1,6 @@
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
-import { useConvexConnectionState, useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useConvexConnectionState, useMutation, useQuery } from "convex/react";
 import {
   createContext,
   type ReactNode,
@@ -10,6 +10,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import type { SessionUser } from "./auth";
 import type { Change } from "./lib/changes";
 
 export type Space = Doc<"spaces"> & { role: "owner" | "editor" | "viewer" };
@@ -68,23 +69,53 @@ export function useOnline() {
   return browserOnline && connected;
 }
 
+/**
+ * Creates or refreshes the person's user record, which every read needs. Someone who
+ * signs up on the web has no record until this runs.
+ */
+function useEnsureUser(user: SessionUser) {
+  const { isAuthenticated } = useConvexAuth();
+  const ensure = useMutation(api.users.ensure);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    ensure({
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      name: user.name ?? undefined,
+      email: user.email,
+    }).then(
+      () => !cancelled && setReady(true),
+      (e) => !cancelled && setError(e),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, ensure, user.name, user.email]);
+  if (error) throw error;
+  return ready;
+}
+
 type Account = NonNullable<ReturnType<typeof useAccountQuery>>;
-const useAccountQuery = () => useQuery(api.reads.account, {});
+const useAccountQuery = (ready: boolean) => useQuery(api.reads.account, ready ? {} : "skip");
 
 /**
  * Loads everything the signed-in screens need. Renders `fallback` until the account is
  * ready, and `setup` when the person hasn't finished first-run setup yet.
  */
 export function AppDataProvider({
+  user,
   children,
   loading,
   setup,
 }: {
+  user: SessionUser;
   children: ReactNode;
   loading: ReactNode;
   setup: ReactNode;
 }) {
-  const account = useAccountQuery();
+  const account = useAccountQuery(useEnsureUser(user));
   if (account === undefined) return loading;
   if (account.spaces.length === 0) return setup;
   return <Loaded account={account}>{children}</Loaded>;
