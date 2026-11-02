@@ -7,7 +7,9 @@
     "build": "cf build",
     "deploy": "cf deploy",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check": "bun run typecheck && bun run test && bun run build",
+    "e2e": "node e2e/smoke.mjs"
   },
   "dependencies": {
     "convex": "1.49.0",
