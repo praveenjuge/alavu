@@ -209,11 +209,37 @@ describe("editing rules", () => {
 
     vi.setSystemTime(new Date("2026-06-15T12:00:00Z"));
     await t.mutation(internal.recurring.materializeDue, {});
-    await push(3, undefined);
+    await push(Date.now(), undefined);
     expect(await logged(t, id)).toEqual(["2026-01-10", "2026-02-10"]);
 
     vi.setSystemTime(new Date("2026-07-10T12:00:00Z"));
     await t.mutation(internal.recurring.materializeDue, {});
     expect(await logged(t, id)).toEqual(["2026-01-10", "2026-02-10", "2026-07-10"]);
+  });
+
+  test("a resume made offline counts from when it was made, not when it synced", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-15T12:00:00Z"));
+    const t = setup();
+    const { as, space } = await signedIn(t, "alice");
+    const id = uid("rule");
+    const push = (editedAt: number, pausedAt: number | undefined) =>
+      as.mutation(api.sync.push, {
+        changes: [
+          {
+            table: "recurringRules",
+            uid: id,
+            editedAt,
+            deleted: false,
+            data: rule(space.uid, { pausedAt }),
+          },
+        ],
+      });
+    await push(1, 2);
+
+    // Resumed on 15 Jun while offline, synced on 15 Aug.
+    vi.setSystemTime(new Date("2026-08-15T12:00:00Z"));
+    await push(Date.UTC(2026, 5, 15, 12), undefined);
+    expect(await logged(t, id)).toEqual(["2026-07-10", "2026-08-10"]);
   });
 });

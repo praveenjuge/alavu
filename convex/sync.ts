@@ -311,9 +311,12 @@ async function applySpaceRecord(ctx: MutationCtx, user: Doc<"users">, c: SpaceRe
       if (sameSchedule && nextDueOn === NEVER && prior.endOn !== undefined) {
         nextDueOn = nextOccurrence(d.startOn, d.cadence, d.interval, prior.endOn);
       }
-      // Resuming skips what fell due while paused instead of logging it all at once.
+      // Resuming skips what fell due while paused instead of logging it all at once. The
+      // pause ended when the edit was made, which for an offline device can be well before
+      // it syncs, so the edit's own time decides (capped at now, for clocks set ahead).
       if (prior?.pausedAt !== undefined && d.pausedAt === undefined) {
-        const today = todayIn(await ownerTimeZone(ctx, space._id));
+        const resumedAt = Math.min(c.editedAt, Date.now());
+        const today = todayIn(await ownerTimeZone(ctx, space._id), resumedAt);
         const resumeOn = occurrenceOnOrAfter(d.startOn, d.cadence, d.interval, today);
         if (resumeOn > nextDueOn) nextDueOn = resumeOn;
       }
