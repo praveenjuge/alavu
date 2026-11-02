@@ -29,7 +29,7 @@ platform :ios do
       project: "Alavu.xcodeproj",
       scheme: "Alavu",
       configuration: "Release",
-      export_method: "app-store-connect",
+      export_method: "app-store",
       output_directory: "build",
       xcargs: [
         "CURRENT_PROJECT_VERSION=#{build_number}",
