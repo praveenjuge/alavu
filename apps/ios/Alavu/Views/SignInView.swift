@@ -25,8 +25,12 @@ struct SignInView: View {
             }
             Spacer()
             VStack(spacing: 12) {
-                button(.apple, title: "Continue with Apple", symbol: "apple.logo")
-                button(.google, title: "Continue with Google", symbol: "g.circle.fill")
+                button(.apple, title: "Continue with Apple") {
+                    Image(systemName: "apple.logo").font(.title3)
+                }
+                button(.google, title: "Continue with Google") {
+                    Image("GoogleLogo").resizable().frame(width: 18, height: 18)
+                }
             }
             Text("By continuing you agree to the [Terms](\(AppConfig.termsURL)) and [Privacy Policy](\(AppConfig.privacyURL)).")
                 .font(.footnote)
@@ -41,25 +45,20 @@ struct SignInView: View {
         }
     }
 
-    private func button(_ provider: AuthService.Provider, title: LocalizedStringKey, symbol: String) -> some View {
+    private func button(_ provider: AuthService.Provider, title: LocalizedStringKey, @ViewBuilder logo: () -> some View) -> some View {
         Button {
             Task { await signIn(provider) }
         } label: {
-            HStack {
+            HStack(spacing: 10) {
                 if inProgress == provider {
                     ProgressView()
                 } else {
-                    Image(systemName: symbol)
+                    logo()
                 }
                 Text(title)
             }
-            .frame(maxWidth: .infinity)
-            // Apple's button follows the system: black in light mode, white in dark.
-            .foregroundStyle(provider == .apple ? Color(.systemBackground) : .white)
         }
-        .buttonStyle(.glassProminent)
-        .controlSize(.large)
-        .tint(provider == .apple ? .primary : .accentColor)
+        .buttonStyle(ProviderButtonStyle(provider: provider))
         .disabled(inProgress != nil)
     }
 
@@ -74,5 +73,49 @@ struct SignInView: View {
         } catch {
             self.error = error.localizedDescription
         }
+    }
+}
+
+/// Sign-in buttons that follow each provider's own guidelines: Apple's is black in light
+/// mode and white in dark mode; Google's is white (or near-black in dark mode) with a
+/// thin gray outline and the full-color "G".
+private struct ProviderButtonStyle: ButtonStyle {
+    let provider: AuthService.Provider
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isEnabled) private var isEnabled
+
+    private var dark: Bool { colorScheme == .dark }
+
+    private var fill: Color {
+        switch provider {
+        case .apple: dark ? .white : .black
+        case .google: dark ? Color(red: 0x13 / 255, green: 0x13 / 255, blue: 0x14 / 255) : .white
+        }
+    }
+
+    private var text: Color {
+        switch provider {
+        case .apple: dark ? .black : .white
+        case .google: dark ? Color(red: 0xE3 / 255, green: 0xE3 / 255, blue: 0xE3 / 255) : Color(red: 0x1F / 255, green: 0x1F / 255, blue: 0x1F / 255)
+        }
+    }
+
+    private var stroke: Color {
+        switch provider {
+        case .apple: .clear
+        case .google: dark ? Color(red: 0x8E / 255, green: 0x91 / 255, blue: 0x8F / 255) : Color(red: 0x74 / 255, green: 0x77 / 255, blue: 0x75 / 255)
+        }
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.medium))
+            .foregroundStyle(text)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(fill, in: .capsule)
+            .overlay(Capsule().strokeBorder(stroke, lineWidth: 1))
+            .opacity(configuration.isPressed ? 0.75 : (isEnabled ? 1 : 0.6))
+            .contentShape(.capsule)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
