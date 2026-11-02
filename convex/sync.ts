@@ -306,10 +306,12 @@ async function applySpaceRecord(ctx: MutationCtx, user: Doc<"users">, c: SpaceRe
         prior.cadence === d.cadence &&
         prior.interval === d.interval;
       let nextDueOn = sameSchedule ? prior.nextDueOn : d.startOn;
+      let resumeOn = sameSchedule ? prior.resumeOn : undefined;
       // A rule that ended picks up after its old end date, so moving the end date later
-      // (or removing it) starts it again.
+      // (or removing it) starts it again. It never goes back before its last resume.
       if (sameSchedule && nextDueOn === NEVER && prior.endOn !== undefined) {
         nextDueOn = nextOccurrence(d.startOn, d.cadence, d.interval, prior.endOn);
+        if (resumeOn !== undefined && resumeOn > nextDueOn) nextDueOn = resumeOn;
       }
       // Resuming skips what fell due while paused instead of logging it all at once. The
       // pause ended when the edit was made, which for an offline device can be well before
@@ -317,14 +319,14 @@ async function applySpaceRecord(ctx: MutationCtx, user: Doc<"users">, c: SpaceRe
       if (prior?.pausedAt !== undefined && d.pausedAt === undefined) {
         const resumedAt = Math.min(c.editedAt, Date.now());
         const today = todayIn(await ownerTimeZone(ctx, space._id), resumedAt);
-        const resumeOn = occurrenceOnOrAfter(d.startOn, d.cadence, d.interval, today);
+        resumeOn = occurrenceOnOrAfter(d.startOn, d.cadence, d.interval, today);
         if (resumeOn > nextDueOn) nextDueOn = resumeOn;
       }
       const id = await upsert(
         ctx,
         "recurringRules",
         existing?._id,
-        { uid: c.uid, ...d, nextDueOn },
+        { uid: c.uid, ...d, nextDueOn, resumeOn },
         c.editedAt,
         space,
       );

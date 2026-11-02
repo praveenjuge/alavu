@@ -217,6 +217,39 @@ describe("editing rules", () => {
     expect(await logged(t, id)).toEqual(["2026-01-10", "2026-02-10", "2026-07-10"]);
   });
 
+  test("an ended rule that restarts never logs what fell due while it was paused", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
+    const t = setup();
+    const { as, space } = await signedIn(t, "alice");
+    const id = uid("rule");
+    const push = (endOn: string, pausedAt?: number) =>
+      as.mutation(api.sync.push, {
+        changes: [
+          {
+            table: "recurringRules",
+            uid: id,
+            editedAt: Date.now(),
+            deleted: false,
+            data: rule(space.uid, { endOn, pausedAt }),
+          },
+        ],
+      });
+    await push("2026-04-30");
+    vi.setSystemTime(new Date("2026-02-01T12:00:00Z"));
+    await push("2026-04-30", Date.now());
+
+    // Resuming on 15 Jun lands past the end date, so the rule ends.
+    vi.setSystemTime(new Date("2026-06-15T12:00:00Z"));
+    await push("2026-04-30");
+    expect(await logged(t, id)).toEqual(["2026-01-10"]);
+
+    // Moving the end date later restarts it from the resume, not from 10 May.
+    vi.setSystemTime(new Date("2026-07-20T12:00:00Z"));
+    await push("2026-12-31");
+    expect(await logged(t, id)).toEqual(["2026-01-10", "2026-07-10"]);
+  });
+
   test("a resume made offline counts from when it was made, not when it synced", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-15T12:00:00Z"));
