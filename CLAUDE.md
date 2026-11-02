@@ -44,10 +44,11 @@ What works in the cloud:
 
 - `bun run check`, the dev server, and `bun run e2e`. The e2e test uses the pre-installed Playwright and Chromium.
 - To show a UI change, take screenshots. The user can't open the VM's localhost. `bun run e2e` writes screenshots to `apps/web/e2e/output/`; send them, or write a small Playwright script for the screen in question.
+- `bunx convex codegen`. The environment sets `CONVEX_DEPLOY_KEY` to a deploy key for the Convex dev deployment. When you add or rename a Convex module, run codegen and commit the updated `convex/_generated/` files. Codegen uploads the functions so it can analyze them, but it doesn't deploy them.
 - Signed-in e2e checks need a WorkOS Staging test user. Set `WORKOS_API_KEY`, `ALAVU_E2E_EMAIL` and `ALAVU_E2E_PASSWORD` as environment variables. Without them, only the signed-out checks run. The Worker's dev-only `POST /app/auth/test-session` route turns the minted refresh token into a session cookie.
 
-What doesn't work in the cloud:
+What doesn't work, or shouldn't be run, in the cloud:
 
 - iOS. The VM is Linux, and `AlavuKit` imports SwiftData and SwiftUI, so nothing Swift builds there. For Swift changes, keep edits small and consistent with the surrounding code. Rely on the `ios` CI job (macOS) on the pull request, and say that the change wasn't built locally.
-- `convex dev`, `convex codegen` and deploys. They need a Convex deploy key that the environment doesn't have. When you add or rename a Convex module, update the imports and the `fullApi` map in `convex/_generated/api.d.ts` by hand, following the existing entries. Typecheck and tests will confirm the result.
+- `convex dev`. It would push your functions to the dev deployment, which the local web dev server also uses. Don't run it unless the user asks.
 - Deploys happen only through `release.yml` on a `v*` tag. Don't deploy from a session.
