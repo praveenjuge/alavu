@@ -8,7 +8,7 @@ struct OverviewView: View {
 
     var body: some View {
         // Rebuilt per space so the queries filter on the right space.
-        OverviewContent(space: space).id(space.uid)
+        OverviewContent(space: space).id("\(space.uid)-\(space.monthStartDay)")
     }
 }
 

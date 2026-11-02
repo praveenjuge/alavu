@@ -63,6 +63,7 @@ final class SyncEngine {
             .debounce(for: .milliseconds(400), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.refreshPendingCount()
+                WidgetCenter.shared.reloadAllTimelines()
                 self?.requestSync()
             }
             .store(in: &cancellables)
@@ -156,7 +157,7 @@ final class SyncEngine {
 
     func setUp(currency: String, monthStartDay: Int) async throws {
         try await client.mutation("users:setup", with: ["currency": currency, "monthStartDay": Double(monthStartDay)])
-        try await pull()
+        await syncLoop()
     }
 
     // MARK: Push

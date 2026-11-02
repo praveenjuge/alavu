@@ -6,7 +6,7 @@ struct BudgetsView: View {
     let space: Space
 
     var body: some View {
-        BudgetsContent(space: space).id(space.uid)
+        BudgetsContent(space: space).id("\(space.uid)-\(space.monthStartDay)")
     }
 }
 
