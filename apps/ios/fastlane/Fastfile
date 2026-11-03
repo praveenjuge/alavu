@@ -22,6 +22,21 @@ platform :ios do
       key_filepath: key_path
     )
 
+    # A fresh CI machine has no signing identity, so automatic signing would create a new
+    # Apple Development certificate on every run until the team hits Apple's limit. Import
+    # the one kept in the CI_DEV_CERT secrets instead, which Xcode then reuses.
+    if ENV["CI"]
+      setup_ci
+      cert_path = File.expand_path("../ci_dev_cert.p12", __dir__)
+      File.binwrite(cert_path, Base64.decode64(ENV.fetch("CI_DEV_CERT_P12_B64")))
+      import_certificate(
+        certificate_path: cert_path,
+        certificate_password: ENV.fetch("CI_DEV_CERT_PASSWORD"),
+        keychain_name: "fastlane_tmp_keychain",
+        keychain_password: ""
+      )
+    end
+
     sh("cd .. && xcodegen generate")
     build_number = latest_testflight_build_number(api_key: api_key, initial_build_number: 0) + 1
 
@@ -48,5 +63,6 @@ platform :ios do
     )
   ensure
     File.delete(key_path) if key_path && File.exist?(key_path)
+    File.delete(cert_path) if cert_path && File.exist?(cert_path)
   end
 end
