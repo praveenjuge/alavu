@@ -148,7 +148,10 @@ function EntryEditor({ entry, onClose }: { entry?: Entry; onClose: () => void })
     !uploading &&
     !!amountMinor &&
     amountMinor > 0n &&
-    (kind !== "transfer" || !!entry || (!!target && !!receivedMinor && receivedMinor > 0n));
+    // Editing a transfer waits for both legs; saving before they load would log a new one.
+    (isTransferEdit
+      ? !!legs?.length
+      : kind !== "transfer" || (!!target && !!receivedMinor && receivedMinor > 0n));
 
   useEffect(() => amountRef.current?.focus(), []);
 
@@ -172,7 +175,7 @@ function EntryEditor({ entry, onClose }: { entry?: Entry; onClose: () => void })
             note: cleanNote,
           }),
         );
-      } else if (kind === "transfer" && target && receivedMinor) {
+      } else if (kind === "transfer" && !entry && target && receivedMinor) {
         changes = transfer({
           from: space,
           to: target,
