@@ -118,6 +118,7 @@ function BudgetEditor({ editing, onClose }: { editing: Editing; onClose: () => v
   );
   const minor = parseAmount(amount, space.currency);
   const nothingLeft = isNew && taken.has("") && choices.length === 0;
+  const canSave = online && !!minor && !nothingLeft;
 
   async function save(amountMinor: bigint | null) {
     const uid = budgetUid(space.uid, categoryUid);
@@ -139,11 +140,7 @@ function BudgetEditor({ editing, onClose }: { editing: Editing; onClose: () => v
       onClose={onClose}
       title={isNew ? "New Budget" : "Edit Budget"}
       action={
-        <Button
-          className="button primary"
-          isDisabled={!online || !minor || nothingLeft}
-          onPress={() => save(minor)}
-        >
+        <Button className="button primary" isDisabled={!canSave} onPress={() => save(minor)}>
           Save
         </Button>
       }
@@ -183,7 +180,7 @@ function BudgetEditor({ editing, onClose }: { editing: Editing; onClose: () => v
             autoFocus
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ""))}
-            onKeyDown={(e) => e.key === "Enter" && minor && save(minor)}
+            onKeyDown={(e) => e.key === "Enter" && canSave && save(minor)}
           />
         </Field>
       </Group>

@@ -56,9 +56,7 @@ export function formatCompact(minor: bigint, currency: string, locale?: string):
  * isn't an amount; rounds half up to the currency's precision.
  */
 export function parseAmount(input: string, currency: string, locale?: string): bigint | null {
-  const parts = new Intl.NumberFormat(locale).formatToParts(12345.6);
-  const group = parts.find((p) => p.type === "group")?.value ?? ",";
-  const decimal = parts.find((p) => p.type === "decimal")?.value ?? ".";
+  const { group, decimal } = separators(locale);
   let text = input.replace(/[\s  ]/g, "").replace(/[^\d.,'-]/g, "");
   if (group) text = text.split(group).join("");
   if (decimal !== ".") text = text.replace(decimal, ".");
@@ -72,8 +70,21 @@ export function parseAmount(input: string, currency: string, locale?: string): b
   return minor;
 }
 
-/** The plain number to show in an amount field when editing, like "1234.5". */
-export function amountInputValue(minor: bigint, currency: string): string {
-  const text = toDecimalString(minor, minorDigits(currency));
-  return text.includes(".") ? text.replace(/\.?0+$/, "") : text;
+function separators(locale?: string) {
+  const parts = new Intl.NumberFormat(locale).formatToParts(12345.6);
+  return {
+    group: parts.find((p) => p.type === "group")?.value ?? ",",
+    decimal: parts.find((p) => p.type === "decimal")?.value ?? ".",
+  };
+}
+
+/**
+ * The plain number to show in an amount field when editing, like "1234.5", in the form
+ * `parseAmount` reads back. Locales that write "1.234,5" get "1234,5": a "." there is a
+ * group separator, so "1234.5" would save as 12345.
+ */
+export function amountInputValue(minor: bigint, currency: string, locale?: string): string {
+  let text = toDecimalString(minor, minorDigits(currency));
+  if (text.includes(".")) text = text.replace(/\.?0+$/, "");
+  return separators(locale).decimal === "," ? text.replace(".", ",") : text;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { formatMoney, parseAmount, toDecimalString } from "./money";
+import { amountInputValue, formatMoney, parseAmount, toDecimalString } from "./money";
 import { nextPeriod, periodContaining, periodDays, previousPeriod } from "./period";
 import { budgetStatus, type Entry, summarize } from "./summary";
 
@@ -25,6 +25,24 @@ describe("money", () => {
     expect(parseAmount("", "USD", "en-US")).toBeNull();
     expect(parseAmount("abc", "USD", "en-US")).toBeNull();
     expect(toDecimalString(5n, 2)).toBe("0.05");
+  });
+
+  test("an amount shown for editing reads back unchanged in every locale", () => {
+    for (const locale of ["en-US", "en-IN", "de-DE", "es-ES", "pt-BR", "fr-FR", "de-CH"]) {
+      for (const [minor, currency] of [
+        [123_450n, "EUR"],
+        [4_550n, "INR"],
+        [100_00n, "USD"],
+        [500n, "JPY"],
+        [1_250n, "KWD"],
+      ] as const) {
+        expect(parseAmount(amountInputValue(minor, currency, locale), currency, locale)).toBe(
+          minor,
+        );
+      }
+    }
+    expect(amountInputValue(123_450n, "EUR", "de-DE")).toBe("1234,5");
+    expect(amountInputValue(123_450n, "EUR", "en-US")).toBe("1234.5");
   });
 });
 

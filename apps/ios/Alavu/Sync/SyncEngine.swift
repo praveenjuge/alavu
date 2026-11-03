@@ -445,14 +445,24 @@ final class SyncEngine {
     private func uploadReceipts() async throws {
         let entries = try context.fetch(FetchDescriptor<Entry>(predicate: #Predicate { !$0.isRemoved }))
             .filter { !$0.pendingReceiptFiles.isEmpty }
-        for entry in entries {
+        entries: for entry in entries {
             for file in entry.pendingReceiptFiles {
                 let local = Store.receiptsFolder.appending(path: file)
                 guard let data = try? Data(contentsOf: local) else {
                     entry.pendingReceiptFiles.removeAll { $0 == file }
                     continue
                 }
-                let target: UploadTarget = try await client.mutation("receipts:uploadUrl", with: ["spaceUid": entry.spaceUid])
+                let target: UploadTarget
+                do {
+                    target = try await client.mutation("receipts:uploadUrl", with: ["spaceUid": entry.spaceUid])
+                } catch ClientError.ConvexError(let reason) {
+                    try ensureRunning()
+                    // The space was deleted on another device, or this account can no longer
+                    // edit it. Skip the entry instead of failing the pass: the pull that
+                    // follows removes it, and a failed pass would never get to that pull.
+                    Analytics.capture("receipt_upload_rejected", ["reason": reason])
+                    continue entries
+                }
                 guard let url = URL(string: target.url) else { continue }
                 var request = URLRequest(url: url)
                 request.httpMethod = "PUT"
