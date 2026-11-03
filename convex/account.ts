@@ -11,8 +11,12 @@ import { memberSpaces } from "./lib/spaces";
 export const deleteAccount = action({
   args: {},
   handler: async (ctx) => {
+    if (!(await ctx.auth.getUserIdentity())) throw new ConvexError("Not signed in");
     const user = await ctx.runQuery(internal.account.currentUser, {});
-    if (!user) throw new ConvexError("Not signed in");
+    // The client re-sends an action whose reply it never got, and the app retries one that
+    // timed out. Either way a deletion that already finished leaves no user record, and
+    // the WorkOS account went before the record did, so there's nothing left to do.
+    if (!user) return;
     await ctx.runMutation(internal.account.deleteData, { userId: user._id });
 
     const apiKey = process.env.WORKOS_API_KEY;

@@ -81,10 +81,12 @@ final class AppModel {
     /// Sends the emailed code to the server, which finishes the paused WorkOS sign-in.
     func verifyEmail(code: String, for check: EmailVerificationNeeded) async throws {
         do {
-            let verified: StoredSession = try await convex.action(
-                "signIn:verifyEmail",
-                with: ["pendingAuthenticationToken": check.pendingAuthenticationToken, "code": code]
-            )
+            let verified: StoredSession = try await withTimeout(.seconds(60)) { [convex] in
+                try await convex.action(
+                    "signIn:verifyEmail",
+                    with: ["pendingAuthenticationToken": check.pendingAuthenticationToken, "code": code]
+                )
+            }
             await auth.complete(with: verified)
         } catch ClientError.ConvexError(let data) {
             throw VerificationError(message: (try? JSONDecoder().decode(String.self, from: Data(data.utf8))) ?? data)

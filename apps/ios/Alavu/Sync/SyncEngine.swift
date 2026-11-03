@@ -38,6 +38,10 @@ final class SyncEngine {
     private var rerun = false
     private var started = false
     private var isConnecting = false
+    /// How long a Convex mutation or query may take before the pass fails and retries.
+    private static let callLimit: Duration = .seconds(30)
+    /// Actions call other services (deleting an account calls WorkOS), so they get longer.
+    private static let actionLimit: Duration = .seconds(60)
     private var retryDelay: Duration = .seconds(5)
     private var retryTask: Task<Void, Never>?
 
@@ -113,7 +117,7 @@ final class SyncEngine {
         }
         do {
             let session = await tokens.currentSession
-            let _: Ignored = try await client.mutation("users:ensure", with: [
+            let _: Ignored = try await mutation("users:ensure", [
                 "timeZone": TimeZone.current.identifier,
                 "name": session?.name,
                 "email": session?.email,
@@ -212,7 +216,7 @@ final class SyncEngine {
     // MARK: First run
 
     func setUp(currency: String, monthStartDay: Int) async throws {
-        let _: Ignored = try await client.mutation("users:setup", with: ["currency": currency, "monthStartDay": Double(monthStartDay)])
+        let _: Ignored = try await mutation("users:setup", ["currency": currency, "monthStartDay": Double(monthStartDay)])
         await syncLoop()
     }
 
@@ -223,7 +227,7 @@ final class SyncEngine {
         for item in items {
             let changes = try item.changes()
             do {
-                let _: Ignored = try await client.mutation("sync:push", with: ["changes": changes.map { $0.convex as ConvexEncodable? }])
+                let _: Ignored = try await mutation("sync:push", ["changes": changes.map { $0.convex as ConvexEncodable? }])
                 try ensureRunning()
                 context.delete(item)
             } catch ClientError.ConvexError(let data) {
@@ -280,10 +284,23 @@ final class SyncEngine {
 
     /// One-shot read of a query through a short-lived subscription.
     private func query<T: Decodable>(_ name: String, _ args: [String: ConvexEncodable?]) async throws -> T {
-        for try await value in client.subscribe(to: name, with: args, yielding: T.self).values {
-            return value
+        try await withTimeout(Self.callLimit) { [client] in
+            for try await value in client.subscribe(to: name, with: args, yielding: T.self).values {
+                return value
+            }
+            throw CancellationError()
         }
-        throw CancellationError()
+    }
+
+    private func mutation<T: Decodable>(_ name: String, _ args: [String: ConvexEncodable?]) async throws -> T {
+        let args = Args(value: args)
+        return try await withTimeout(Self.callLimit) { [client] in try await client.mutation(name, with: args.value) }
+    }
+
+    /// Lets call arguments into a timed call. They're plain values that nothing changes
+    /// once they're handed to the client.
+    private nonisolated struct Args: @unchecked Sendable {
+        let value: [String: ConvexEncodable?]
     }
 
     // MARK: Apply
@@ -454,7 +471,7 @@ final class SyncEngine {
                 }
                 let target: UploadTarget
                 do {
-                    target = try await client.mutation("receipts:uploadUrl", with: ["spaceUid": entry.spaceUid])
+                    target = try await mutation("receipts:uploadUrl", ["spaceUid": entry.spaceUid])
                 } catch ClientError.ConvexError(let reason) {
                     try ensureRunning()
                     // The space was deleted on another device, or this account can no longer
@@ -482,7 +499,7 @@ final class SyncEngine {
     func receiptImageData(key: String) async throws -> Data {
         let cached = Store.cachedReceiptURL(forKey: key)
         if let data = try? Data(contentsOf: cached) { return data }
-        let link: String = try await client.mutation("receipts:downloadUrl", with: ["key": key])
+        let link: String = try await mutation("receipts:downloadUrl", ["key": key])
         guard let url = URL(string: link) else { throw URLError(.badURL) }
         let (data, _) = try await URLSession.shared.data(from: url)
         try? data.write(to: cached)
@@ -492,7 +509,7 @@ final class SyncEngine {
     // MARK: Account
 
     func deleteAccount() async throws {
-        let _: Ignored = try await client.action("account:deleteAccount")
+        let _: Ignored = try await withTimeout(Self.actionLimit) { [client] in try await client.action("account:deleteAccount") }
     }
 
     /// Wipes everything stored on this device (on sign-out or account deletion).
